@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAPK Manifest Creator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Nền tối */
+            color: #e2e8f0; /* Chữ sáng */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            background-color: #2d3748; /* Nền của form chính */
+            border: 1px solid #4a5568;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .bg-gray-50 {
+            background-color: #4a5568; /* Nền của các phần form - Đã hoàn nguyên về tối */
+        }
+        .text-gray-800, .text-gray-700 {
+            color: #e2e8f0; /* Tiêu đề và nhãn - Đã hoàn nguyên về sáng */
+        }
+        .text-gray-600 {
+            color: #a0aec0; /* Chữ mô tả - Đã hoàn nguyên về sáng */
+        }
+        input, select {
+            background-color: #2d3748; /* Nền của input - Đã hoàn nguyên về tối */
+            color: #e2e8f0; /* Chữ trong input - Đã hoàn nguyên về sáng */
+            border-color: #4a5568; /* Viền input - Đã hoàn nguyên về tối */
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: #63b3ed;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.5);
+        }
+        input::placeholder {
+            color: #a0aec0; /* Placeholder - Đã hoàn nguyên về sáng */
+        }
+        button {
+            transition: all 0.2s;
+            user-select: none; /* Ngăn chặn con trỏ văn bản */
+            -webkit-user-select: none; /* Cho trình duyệt WebKit */
+            -moz-user-select: none; /* Cho Firefox */
+            -ms-user-select: none; /* Cho Internet Explorer/Edge */
+        }
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+        .autocomplete-list {
+            position: absolute;
+            z-index: 10;
+            width: 100%;
+            top: calc(100% + 8px);
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #2d3748; /* Nền danh sách gợi ý - Đã hoàn nguyên về tối */
+            border: 1px solid #4a5568;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            -webkit-overflow-scrolling: touch;
+        }
+        .autocomplete-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            word-break: break-all;
+            white-space: normal;
+            color: #e2e8f0; /* Đảm bảo màu chữ sáng */
+        }
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background-color: #4a5568; /* Hover của danh sách gợi ý - Đã hoàn nguyên về tối */
+        }
+        .hidden-locale {
+            display: none !important;
+        }
+        .bg-blue-600 { background-color: #3b82f6; }
+        .hover\:bg-blue-700:hover { background-color: #2563eb; }
+        .bg-green-500 { background-color: #22c55e; }
+        .hover\:bg-green-600:hover { background-color: #15803d; }
+        .bg-gray-400 { background-color: #9ca3af; }
+        .hover\:bg-gray-500:hover { background-color: #6b7280; }
+        .text-red-500 { color: #ef4444; }
+
+        /* Cấu trúc flexbox nhất quán cho tất cả các hàng */
+        .form-row {
+            display: flex;
+            align-items: flex-start; /* Căn chỉnh các mục ở phía trên cùng */
+            gap: 0.5rem; /* Khoảng cách giữa các cột */
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+        .content-wrapper {
+            display: flex;
+            flex-grow: 1; /* Chiếm hết không gian còn lại */
+            gap: 0.5rem;
+        }
+        /* Wrapper cho các trường input đơn lẻ (permissions, split configs, split apks) */
+        .single-input-wrapper {
+            flex-grow: 1; /* Chiếm toàn bộ chiều rộng của content-wrapper */
+            flex-basis: 0;
+            min-width: 0;
+        }
+        /* Wrapper cho nút xóa */
+        .remove-btn-wrapper {
+            flex-shrink: 0; /* Không co lại */
+            width: 2.25rem; /* Cố định kích thước nút x */
+            height: 2.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4a5568; /* Nền nhẹ hơn để nổi bật - Đã hoàn nguyên về tối */
+            border-radius: 1.125rem; /* Bo tròn góc */
+        }
+        /* Offset for remove buttons next to labels */
+        .remove-btn-wrapper.offset-for-label {
+            margin-top: 1.25rem; /* Adjust this value if needed for perfect visual alignment */
+        }
+
+        /* Cấu hình tỷ lệ cho các trường nhập liệu bản địa hóa */
+        .locale-code-wrapper {
+            flex-grow: 2;
+            flex-basis: 0;
+            min-width: 0;
+        }
+        .locale-name-wrapper {
+            flex-grow: 3;
+            flex-basis: 0;
+            min-width: 0;
+        }
+        
+        /* Màu sắc mới cho nút xóa */
+        .btn-remove-icon {
+            background-color: transparent;
+            border: none;
+            color: #ef4444; /* Màu đỏ */
+            font-size: 1.5rem; /* Kích thước lớn hơn một chút */
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            display: flex; /* Dùng flex để căn giữa 'x' */
+            align-items: center;
+            justify-content: center;
+            width: 100%; /* Đảm bảo 'x' lấp đầy wrapper */
+            height: 100%;
+            user-select: none; /* Ngăn chặn con trỏ văn bản */
+            -webkit-user-select: none; /* Cho trình duyệt WebKit */
+            -moz-user-select: none; /* Cho Firefox */
+            -ms-user-select: none; /* Cho Internet Explorer/Edge */
+        }
+        .btn-remove-icon:hover {
+            background-color: #63b3ed; /* Nền xanh nhạt hơn khi hover - Đã hoàn nguyên về tối */
+            border-radius: 9999px; /* Bo tròn hoàn toàn */
+        }
+
+        /* Responsive layout cho di động */
+        @media (max-width: 767px) { /* Sử dụng 767px để phù hợp với md: của Tailwind */
+            .form-row {
+                flex-wrap: wrap;
+                align-items: flex-start; /* Căn trên cùng khi wrap */
+            }
+            .content-wrapper {
+                flex-wrap: wrap;
+                width: 100%; /* Đảm bảo content-wrapper chiếm toàn bộ chiều rộng khi wrap */
+            }
+            .locale-code-wrapper, .locale-name-wrapper, .single-input-wrapper {
+                flex-basis: 100%; /* Mỗi input/nút chiếm toàn bộ chiều rộng */
+                flex-grow: 1;
+                width: 100%; /* Đảm bảo các input/nút con chiếm 100% */
+            }
+            .remove-btn-wrapper {
+                order: 3; /* Đặt nút xóa xuống cuối hàng */
+                width: 100%;
+                justify-content: flex-end; /* Căn phải nút xóa */
+                margin-top: 0.5rem; /* Thêm khoảng cách nếu cần */
+            }
+            /* Override the offset for label on mobile */
+            .remove-btn-wrapper.offset-for-label {
+                margin-top: 0.5rem;
+            }
+            /* Riêng cho hàng nút bản địa hóa, làm cho spacer trong suốt */
+            .locale-button-container .remove-btn-wrapper {
+                background-color: transparent; /* Làm cho nó trong suốt */
+                display: flex; /* Đảm bảo nó vẫn là flex container */
+                width: auto; /* Cho phép nó co giãn tự nhiên nếu cần */
+                height: auto; /* Cho phép nó co giãn tự nhiên nếu cần */
+                justify-content: flex-start; /* Căn trái trên di động */
+            }
+        }
+        /* Validation styles */
+        .input-error {
+            border-color: #ef4444; /* Red border for error */
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5); /* Red shadow */
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+
+        /* Quy tắc để làm cho chấm đen trong suốt trên desktop */
+        .locale-button-container .remove-btn-wrapper {
+            background-color: transparent;
+        }
+
+        /* New styles for expansion input layout */
+        .expansion-input-group {
+            background-color: #4a5568; /* Match the .bg-gray-50 sections - Đã hoàn nguyên về tối */
+            padding: 2rem; /* Tăng padding để tạo khoảng trống lớn hơn */
+            border-radius: 0.5rem;
+            margin-bottom: 1rem; /* Space between groups */
+            border: 1px solid #4a5568; /* Subtle border - Đã hoàn nguyên về tối */
+            position: relative; /* Needed for absolute positioning of remove button */
+        }
+        .expansion-input-group > div {
+            margin-bottom: 0.75rem; /* Space between each label-input pair within the group */
+        }
+        .expansion-input-group > div:last-child {
+            margin-bottom: 0; /* No margin after the last one */
+        }
+        /* Style for the remove button inside the expansion group */
+        .expansion-input-group .btn-remove-icon {
+            position: absolute;
+            top: 1rem; /* Điều chỉnh vị trí nút để phù hợp với padding */
+            right: 1rem; /* Điều chỉnh vị trí nút để phù hợp với padding */
+            background-color: #4a5568; /* Match the other remove buttons' background - Đã hoàn nguyên về tối */
+            border-radius: 9999px; /* Fully rounded */
+            width: 2rem; /* Make it a square for better click target */
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem; /* Slightly smaller 'x' */
+            color: #ef4444; /* Màu đỏ */
+            z-index: 1; /* Ensure it's above inputs */
+            user-select: none; /* Ngăn chặn con trỏ văn bản */
+            -webkit-user-select: none; /* Cho trình duyệt WebKit */
+            -moz-user-select: none; /* Cho Firefox */
+            -ms-user-select: none; /* Cho Internet Explorer/Edge */
+        }
+        .expansion-input-group .btn-remove-icon:hover {
+            background-color: #63b3ed; /* Đã hoàn nguyên về tối */
+        }
+
+        /* Style for readonly input in expansions */
+        .expansion-input-group input[readonly] {
+            background-color: #2d3748; /* Darker background for readonly */
+            color: #e2e8f0; /* Lighter text for readonly */
+            cursor: not-allowed;
+        }
+
+        /* Quy tắc để làm cho dấu chấm đen bên cạnh nút "Thêm Quyền" trong suốt */
+        #add-permission-row .remove-btn-wrapper {
+            background-color: transparent; /* Làm cho nền của wrapper trong suốt */
+        }
+        #add-permission-row .remove-btn-wrapper .btn-remove-icon {
+            visibility: hidden; /* Ẩn nút 'x' bên trong */
+        }
+
+        /* Quy tắc để làm cho dấu chấm đen bên cạnh nút "Thêm Cấu hình" trong suốt */
+        #add-split-config-row .remove-btn-wrapper { /* New rule for split configs */
+            background-color: transparent;
+        }
+        #add-split-config-row .remove-btn-wrapper .btn-remove-icon { /* New rule for split configs */
+            visibility: hidden;
+        }
+
+        /* Ngăn chặn chọn văn bản cho các tiêu đề h2 và nhãn */
+        .bg-gray-50 h2, .bg-gray-50 label {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container max-w-4xl mx-auto p-6 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">Trình Tạo Manifest.json</h1>
+        <p class="text-gray-600 text-center mb-8">
+            Nhập thông tin cho tệp manifest.json của bạn. Sau đó, nhấn nút "Tải xuống" để xuất ra tệp.
+        </p>
+        
+        <!-- Form nhập liệu -->
+        <form id="manifestForm" class="space-y-6">
+
+            <!-- Thông tin cơ bản -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Thông Tin Cơ Bản</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="xapk_version" class="block text-sm font-medium text-gray-700">Phiên bản XAPK</label>
+                        <input type="text" id="xapk_version" placeholder="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3">
+                    </div>
+                    <div>
+                        <label for="package_name" class="block text-sm font-medium text-gray-700">Tên gói <span class="text-red-500">*</span></label>
+                        <input type="text" id="package_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="com.example.app">
+                        <p id="package_name_error" class="error-message hidden">Tên gói không được để trống.</p>
+                    </div>
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Tên ứng dụng <span class="text-red-500">*</span></label>
+                        <input type="text" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="Example App">
+                        <p id="name_error" class="error-message hidden">Tên ứng dụng không được để trống.</p>
+                    </div>
+                    <div>
+                        <label for="version_code" class="block text-sm font-medium text-gray-700">Mã phiên bản <span class="text-red-500">*</span></label>
+                        <input type="text" id="version_code" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="4190">
+                        <p id="version_code_error" class="error-message hidden">Mã phiên bản không được để trống và phải là số.</p>
+                    </div>
+                    <div>
+                        <label for="version_name" class="block text-sm font-medium text-gray-700">Tên phiên bản</label>
+                        <input type="text" id="version_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="1.1.67">
+                    </div>
+                    <div>
+                        <label for="min_sdk_version" class="block text-sm font-medium text-gray-700">Phiên bản SDK tối thiểu <span class="text-red-500">*</span></label>
+                        <input type="text" id="min_sdk_version" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="21">
+                        <p id="min_sdk_version_error" class="error-message hidden">Phiên bản SDK tối thiểu không được để trống và phải là số.</p>
+                    </div>
+                    <div>
+                        <label for="target_sdk_version" class="block text-sm font-medium text-gray-700">Phiên bản SDK mục tiêu <span class="text-red-500">*</span></label>
+                        <input type="text" id="target_sdk_version" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="34">
+                        <p id="target_sdk_version_error" class="error-message hidden">Phiên bản SDK mục tiêu không được để trống và phải là số.</p>
+                    </div>
+                    <div>
+                        <label for="total_size" class="block text-sm font-medium text-gray-700">Tổng kích thước (Tính bằng Bytes) <span class="text-red-500">*</span></label>
+                        <input type="text" id="total_size" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="121079890">
+                        <p id="total_size_error" class="error-message hidden">Tổng kích thước không được để trống và phải là số.</p>
+                    </div>
+                    <div>
+                        <label for="icon" class="block text-sm font-medium text-gray-700">Tên tệp biểu tượng</label>
+                        <input type="text" id="icon" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="icon.png">
+                    </div>
+                    <div>
+                        <label for="expansion_version" class="block text-sm font-medium text-gray-700">Phiên bản của tệp mở rộng OBB</label>
+                        <input type="text" id="expansion_version" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="12">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tên ứng dụng theo ngôn ngữ (locales_name) -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Tên ứng dụng theo ngôn ngữ (locales_name)</h2>
+                <div id="locales_name_container" class="space-y-2">
+                    <!-- Các cặp input sẽ được thêm bằng JS -->
+                </div>
+                <div class="form-row locale-button-container mt-4">
+                    <div class="content-wrapper">
+                        <div class="locale-code-wrapper"> <!-- Nút "Thêm Ngôn ngữ" sẽ có chiều rộng bằng mã ngôn ngữ -->
+                            <button type="button" id="addLocaleBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                Thêm Ngôn ngữ
+                            </button>
+                        </div>
+                        <div class="locale-name-wrapper"> <!-- Nút "Mở rộng danh sách" sẽ có chiều rộng bằng tên ứng dụng -->
+                            <button type="button" id="toggle-locales-btn" class="w-full bg-gray-400 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                Mở rộng danh sách
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Re-adding the placeholder for alignment -->
+                    <div class="remove-btn-wrapper offset-for-label">
+                        <!-- This button is intentionally empty to act as a spacer -->
+                        <button type="button" class="btn-remove-icon" style="visibility: hidden;" tabindex="-1">x</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tệp mở rộng (expansions) -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Tệp mở rộng (expansions)</h2>
+                <div id="expansions_container" class="space-y-4">
+                    <!-- Các cặp input sẽ được thêm bằng JS -->
+                </div>
+                <div class="mt-4"> <!-- Simplified: just a div for the button -->
+                    <button type="button" id="addExpansionInputBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                        Thêm Tệp mở rộng
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quyền ứng dụng (permissions) -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Quyền ứng dụng (permissions)</h2>
+                <div id="permissions_container" class="space-y-2">
+                    <!-- Các input với tính năng tự động hoàn thành sẽ được thêm bằng JS -->
+                </div>
+                <div class="form-row mt-4" id="add-permission-row"> <!-- Added ID for specific targeting -->
+                    <div class="content-wrapper">
+                        <div class="single-input-wrapper">
+                            <button type="button" id="addPermissionBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                Thêm Quyền
+                            </button>
+                        </div>
+                    </div>
+                    <div class="remove-btn-wrapper offset-for-label" style="background-color: transparent;"> <!-- Made transparent -->
+                        <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1" style="visibility: hidden;">x</button> <!-- Hidden here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cấu hình phân tách (split_configs) -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Cấu hình phân tách (split_configs)</h2>
+                <div id="split_configs_container" class="space-y-2">
+                    <!-- Các input sẽ được thêm bằng JS -->
+                </div>
+                <div class="form-row mt-4" id="add-split-config-row"> <!-- Added ID for specific targeting -->
+                    <div class="content-wrapper">
+                        <div class="single-input-wrapper">
+                            <button type="button" id="addSplitConfigBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                Thêm Cấu hình
+                            </button>
+                        </div>
+                    </div>
+                    <div class="remove-btn-wrapper offset-for-label" style="background-color: transparent;"> <!-- Made transparent -->
+                        <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1" style="visibility: hidden;">x</button> <!-- Hidden here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Các APK phân tách (split_apks) -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Các APK phân tách (split_apks)</h2>
+                <div id="split_apks_container" class="space-y-2">
+                    <!-- Các cặp input sẽ được thêm bằng JS -->
+                </div>
+                <div class="form-row mt-4">
+                    <div class="content-wrapper">
+                        <div class="single-input-wrapper">
+                            <button type="button" id="addSplitApkBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                Thêm APK
+                            </button>
+                        </div>
+                    </div>
+                    <div class="remove-btn-wrapper offset-for-label">
+                        <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nút Tải xuống -->
+            <div class="mt-8 text-center">
+                <button type="button" onclick="downloadManifest()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-colors">
+                    Tải xuống Manifest.json
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const COMMON_ANDROID_PERMISSIONS = [
+            "android.permission.ACCESS_ALL_DOWNLOADS", "android.permission.ACCESS_CACHE_FILESYSTEM", "android.permission.ACCESS_CONTENT_PROVIDERS_EXTERNALLY", "android.permission.ACCESS_DOWNLOAD_MANAGER", "android.permission.ACCESS_DOWNLOAD_MANAGER_ADVANCED", "android.permission.ACCESS_DRM_CERTIFICATES", "android.permission.ACCESS_EPHEMERAL_APPS", "android.permission.ACCESS_KEYGUARD_SECURE_STORAGE", "android.permission.ACCESS_MTP", "android.permission.ACCESS_NOTIFICATIONS", "android.permission.ACCESS_NOTIFICATION_POLICY", "android.permission.ACCESS_PDB_STATE", "android.permission.ACCESS_VR_MANAGER", "android.permission.CLEAR_APP_CACHE", "android.permission.CLEAR_APP_GRANTED_URI_PERMISSIONS", "android.permission.CLEAR_APP_USER_DATA", "android.permission.DOWNLOAD_CACHE_NON_PURGEABLE", "android.permission.GET_APP_GRANTED_URI_PERMISSIONS", "android.permission.GET_APP_OPS_STATS", "android.permission.GET_PACKAGE_IMPORTANCE", "android.permission.GET_PACKAGE_SIZE", "android.permission.GET_PASSWORD", "android.permission.GET_PROCESS_STATE_AND_OOM_SCORE", "android.permission.GET_PACKAGE_IMPORTANCE", "android.permission.GET_PACKAGE_SIZE", "android.permission.GET_PASSWORD", "android.permission.GET_PROCESS_STATE_AND_OOM_SCORE", "android.permission.READ_BLOCKED_NUMBERS", "android.permission.READ_DREAM_STATE", "android.permission.READ_FRAME_BUFFER", "android.permission.READ_INPUT_STATE", "android.permission.READ_INSTALL_SESSIONS", "android.permission.READ_LOGS", "android.permission.READ_NETWORK_USAGE_HISTORY", "android.permission.READ_OEM_UNLOCK_STATE", "android.permission.READ_PRECISE_PHONE_STATE", "android.permission.READ_PRIVILEGED_PHONE_STATE", "android.permission.READ_PROFILE", "android.permission.READ_SEARCH_INDEXABLES", "android.permission.READ_SOCIAL_STREAM", "android.permission.READ_SYNC_SETTINGS", "android.permission.READ_SYNC_STATS", "android.permission.READ_USER_DICTIONARY", "android.permission.READ_WIFI_CREDENTIAL", "android.permission.ACCESS_BLUETOOTH_SHARE", "android.permission.ACCESS_NETWORK_CONDITIONS", "android.permission.ACCESS_NETWORK_STATE", "android.permission.ACCESS_WIFI_STATE", "android.permission.ACCESS_WIMAX_STATE", "android.permission.BLUETOOTH", "android.permission.BLUETOOTH_ADMIN", "android.permission.BLUETOOTH_MAP", "android.permission.BLUETOOTH_PRIVILEGED", "android.permission.BLUETOOTH_STACK", "android.permission.BROADCAST_NETWORK_PRIVILEGED", "android.permission.CHANGE_BACKGROUND_DATA_SETTING", "android.permission.CHANGE_NETWORK_STATE", "android.permission.CHANGE_WIFI_MULTICAST_STATE", "android.permission.CHANGE_WIFI_STATE", "android.permission.CHANGE_WIMAX_STATE", "android.permission.CONNECTIVITY_INTERNAL", "android.permission.CONTROL_VPN", "android.permission.CONTROL_WIFI_DISPLAY", "android.permission.CONFIRM_FULL_BACKUP", "android.permission.INTERNET", "android.permission.LOCAL_MAC_ADDRESS", "android.permission.NET_ADMIN", "android.permission.NET_TUNNELING", "android.permission.NFC", "android.permission.NFC_HANDOVER_STATUS", "android.permission.OVERRIDE_WIFI_CONFIG", "android.permission.PACKET_KEEPALIVE_OFFLOAD", "android.permission.PEERS_MAC_ADDRESS", "android.permission.RECEIVE_DATA_ACTIVITY_CHANGE", "android.permission.RECEIVE_BLUETOOTH_MAP", "android.permission.RECEIVE_WIFI_CREDENTIAL_CHANGE", "android.permission.SCORE_NETWORKS", "android.permission.SERIAL_PORT", "android.permission.TETHER_PRIVILEGED", "android.permission.TRANSMIT_IR", "android.permission.ACCESS_FM_RADIO", "android.permission.ACCESS_INPUT_FLINGER", "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS", "android.permission.ACCESS_MOCK_LOCATION", "android.permission.ACCESS_SURFACE_FLINGER", "android.permission.ACCESS_VOICE_INTERACTION_SERVICE", "android.permission.ACCOUNT_MANAGER", "android.permission.ALLOW_ANY_CODEC_FOR_PLAYBACK", "android.permission.ASEC_ACCESS", "android.permission.ASEC_CREATE", "android.permission.ASEC_DESTROY", "android.permission.ASEC_MOUNT_UNMOUNT", "android.permission.ASEC_RENAME", "android.permission.AUTHENTICATE_ACCOUNTS", "android.permission.BACKUP", "android.permission.BATTERY_STATS", "android.permission.BIND_ACCESSIBILITY_SERVICE", "android.permission.BIND_APPWIDGET", "android.permission.BIND_CARRIER_MESSAGING_SERVICE", "android.permission.BIND_CARRIER_SERVICES", "android.permission.BIND_CHOOSER_TARGET_SERVICE", "android.permission.BIND_CONDITION_PROVIDER_SERVICE", "android.permission.BIND_CONNECTION_SERVICE", "android.permission.BIND_DEVICE_ADMIN", "android.permission.BIND_DIRECTORY_SEARCH", "android.permission.BIND_DREAM_SERVICE", "android.permission.BIND_INCALL_SERVICE", "android.permission.BIND_INPUT_METHOD", "android.permission.BIND_INTENT_FILTER_VERIFIER", "android.permission.BIND_JOB_SERVICE", "android.permission.BIND_KEYGUARD_APPWIDGET", "android.permission.BIND_MIDI_DEVICE_SERVICE", "android.permission.BIND_NFC_SERVICE", "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE", "android.permission.BIND_NOTIFICATION_RANKER_SERVICE", "android.permission.BIND_PACKAGE_VERIFIER", "android.permission.BIND_PRINT_RECOMMENDATION_SERVICE", "android.permission.BIND_PRINT_SERVICE", "android.permission.BIND_PRINT_SPOOLER_SERVICE", "android.permission.BIND_QUICK_SETTINGS_TILE", "android.permission.BIND_REMOTEVIEWS", "android.permission.BIND_REMOTE_DISPLAY", "android.permission.BIND_ROUTE_PROVIDER", "android.permission.BIND_RUNTIME_PERMISSION_PRESENTER_SERVICE", "android.permission.BIND_SCREENING_SERVICE", "android.permission.BIND_TELECOM_CONNECTION_SERVICE", "android.permission.BIND_TEXT_SERVICE", "android.permission.BIND_TRUST_AGENT", "android.permission.BIND_TV_INPUT", "android.permission.BIND_TV_REMOTE_SERVICE", "android.permission.BIND_VOICE_INTERACTION", "android.permission.BIND_VPN_SERVICE", "android.permission.BIND_VR_LISTENER_SERVICE", "android.permission.BIND_WALLPAPER", "android.permission.BRICK", "android.permission.BROADCAST_CALLLOG_INFO", "android.permission.BROADCAST_PACKAGE_REMOVED", "android.permission.BROADCAST_PHONE_ACCOUNT_REGISTRATION", "android.permission.BROADCAST_SMS", "android.permission.BROADCAST_STICKY", "android.permission.BROADCAST_WAP_PUSH", "android.permission.CACHE_CONTENT", "android.permission.CALL_PRIVILEGED", "android.permission.CAMERA", "android.permission.CAMERA_DISABLE_TRANSMIT_LED", "android.permission.CAMERA_SEND_SYSTEM_EVENTS", "android.permission.CAPTURE_AUDIO_HOTWORD", "android.permission.CAPTURE_AUDIO_OUTPUT", "android.permission.CAPTURE_SECURE_VIDEO_OUTPUT", "android.permission.CAPTURE_TV_INPUT", "android.permission.CAPTURE_VIDEO_OUTPUT", "android.permission.CARRIER_FILTER_SMS", "android.permission.CHANGE_APP_IDLE_STATE", "android.permission.CHANGE_COMPONENT_ENABLED_STATE", "android.permission.CHANGE_CONFIGURATION", "android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST", "android.permission.CONFIGURE_DISPLAY_COLOR_TRANSFORM", "android.permission.CONFIGURE_WIFI_DISPLAY", "android.permission.CONTROL_INCALL_EXPERIENCE", "android.permission.CONTROL_KEYGUARD", "android.permission.CONTROL_LOCATION_UPDATES", "android.permission.COPY_PROTECTED_DATA", "android.permission.CREATE_USERS", "android.permission.CRYPT_KEEPER", "android.permission.DELETE_CACHE_FILES", "android.permission.DELETE_PACKAGES", "android.permission.DEVICE_POWER", "android.permission.DIAGNOSTIC", "android.permission.DISABLE_KEYGUARD", "android.permission.DISPATCH_NFC_MESSAGE", "android.permission.DISPATCH_PROVISIONING_MESSAGE", "android.permission.DUMP", "android.permission.DVB_DEVICE", "android.permission.EXPAND_STATUS_BAR", "android.permission.FACTORY_TEST", "android.permission.FILTER_EVENTS", "android.permission.FLASHLIGHT", "android.permission.FORCE_BACK", "android.permission.FORCE_STOP_PACKAGES", "android.permission.FRAME_STATS", "android.permission.FREEZE_SCREEN", "android.permission.GET_ACCOUNTS_PRIVILEGED", "android.permission.GET_DETAILED_TASKS", "android.permission.GET_INTENT_SENDER_INTENT", "android.permission.GET_TASKS", "android.permission.GET_TOP_ACTIVITY_INFO", "android.permission.GLOBAL_SEARCH", "android.permission.GLOBAL_SEARCH_CONTROL", "android.permission.GRANT_RUNTIME_PERMISSIONS", "android.permission.HARDWARE_TEST", "android.permission.HDMI_CEC", "android.permission.INJECT_EVENTS", "android.permission.INSTALL_GRANT_RUNTIME_PERMISSIONS", "android.permission.INSTALL_LOCATION_PROVIDER", "android.permission.INSTALL_PACKAGES", "android.permission.INTENT_FILTER_VERIFICATION_AGENT", "android.permission.INTERACT_ACROSS_USERS", "android.permission.INTERACT_ACROSS_USERS_FULL", "android.permission.INTERNAL_SYSTEM_WINDOW", "android.permission.INVOKE_CARRIER_SETUP", "android.permission.KILL_BACKGROUND_PROCESSES", "android.permission.KILL_UID", "android.permission.LAUNCH_TRUST_AGENT_SETTINGS", "android.permission.LOCATION_HARDWARE", "android.permission.LOOP_RADIO", "android.permission.MANAGE_ACCOUNTS", "android.permission.MANAGE_ACTIVITY_STACKS", "android.permission.MANAGE_APP_OPS_RESTRICTIONS", "android.permission.MANAGE_APP_TOKENS", "android.permission.MANAGE_CA_CERTIFICATES", "android.permission.MANAGE_DEVICE_ADMINS", "android.permission.MANAGE_DOCUMENTS", "android.permission.MANAGE_FINGERPRINT", "android.permission.MANAGE_MEDIA_PROJECTION", "android.permission.MANAGE_NETWORK_POLICY", "android.permission.MANAGE_NOTIFICATIONS", "android.permission.MANAGE_PROFILE_AND_DEVICE_OWNERS", "android.permission.MANAGE_SOUND_TRIGGER", "android.permission.MANAGE_USB", "android.permission.MANAGE_USERS", "android.permission.MANAGE_VOICE_KEYPHRASES", "android.permission.MASTER_CLEAR", "android.permission.MEDIA_CONTENT_CONTROL", "android.permission.MODIFY_APPWIDGET_BIND_PERMISSIONS", "android.permission.MODIFY_AUDIO_ROUTING", "android.permission.MODIFY_AUDIO_SETTINGS", "android.permission.MODIFY_CELL_BROADCASTS", "android.permission.MODIFY_DAY_NIGHT_MODE", "android.permission.MODIFY_NETWORK_ACCOUNTING", "android.permission.MODIFY_PARENTAL_CONTROLS", "android.permission.MODIFY_PHONE_STATE", "android.permission.MOUNT_FORMAT_FILESYSTEMS", "android.permission.MOUNT_UNMOUNT_FILESYSTEMS", "android.permission.MOVE_PACKAGE", "android.permission.NOTIFY_PENDING_SYSTEM_UPDATE", "android.permission.OBSERVE_GRANT_REVOKE_PERMISSIONS", "android.permission.OEM_UNLOCK_STATE", "android.permission.PACKAGE_USAGE_STATS", "android.permission.PACKAGE_VERIFICATION_AGENT", "android.permission.PERFORM_CDMA_PROVISIONING", "android.permission.PERFORM_SIM_ACTIVATION", "android.permission.PERSISTENT_ACTIVITY", "android.permission.PROCESS_CALLLOG_INFO", "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION", "android.permission.PROVIDE_TRUST_AGENT", "android.permission.QUERY_DO_NOT_ASK_CREDENTIALS_ON_BOOT", "android.permission.REAL_GET_TASKS", "android.permission.REBOOT", "android.permission.RECEIVE_BOOT_COMPLETED", "android.permission.RECEIVE_EMERGENCY_BROADCAST", "android.permission.RECEIVE_MEDIA_RESOURCE_USAGE", "android.permission.RECEIVE_STK_COMMANDS", "android.permission.RECOVERY", "android.permission.REGISTER_CALL_PROVIDER", "android.permission.REGISTER_CONNECTION_MANAGER", "android.permission.REGISTER_SIM_SUBSCRIPTION", "android.permission.REGISTER_WINDOW_MANAGER_LISTENERS", "android.permission.REMOTE_AUDIO_PLAYBACK", "android.permission.REMOVE_DRM_CERTIFICATES", "android.permission.REMOVE_TASKS", "android.permission.REORDER_TASKS", "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS", "android.permission.REQUEST_INSTALL_PACKAGES", "android.permission.RESET_FINGERPRINT_LOCKOUT", "android.permission.RESET_SHORTCUT_MANAGER_THROTTLING", "android.permission.RESTART_PACKAGES", "android.permission.RETRIEVE_WINDOW_CONTENT", "android.permission.RETRIEVE_WINDOW_TOKEN", "android.permission.REVOKE_RUNTIME_PERMISSIONS", "android.permission.SEND_CALL_LOG_CHANGE", "android.permission.SEND_DOWNLOAD_COMPLETED_INTENTS", "android.permission.SEND_RESPOND_VIA_MESSAGE", "android.permission.SEND_SMS_NO_CONFIRMATION", "android.permission.SET_ACTIVITY_WATCHER", "android.permission.SET_ALWAYS_FINISH", "android.permission.SET_ANIMATION_SCALE", "android.permission.SET_DEBUG_APP", "android.permission.SET_INPUT_CALIBRATION", "android.permission.SET_KEYBOARD_LAYOUT", "android.permission.SET_ORIENTATION", "android.permission.SET_POINTER_SPEED", "android.permission.SET_PREFERRED_APPLICATIONS", "android.permission.SET_PROCESS_LIMIT", "android.permission.SET_SCREEN_COMPATIBILITY", "android.permission.SET_TIME", "android.permission.SET_TIME_ZONE", "android.permission.SET_WALLPAPER", "android.permission.SET_WALLPAPER_COMPONENT", "android.permission.SET_WALLPAPER_HINTS", "android.permission.SHUTDOWN", "android.permission.SIGNAL_PERSISTENT_PROCESSES", "android.permission.START_ANY_ACTIVITY", "android.permission.START_PRINT_SERVICE_CONFIG_ACTIVITY", "android.permission.START_TASKS_FROM_RECENTS", "android.permission.STATUS_BAR", "android.permission.STATUS_BAR_SERVICE", "android.permission.STOP_APP_SWITCHES", "android.permission.STORAGE_INTERNAL", "android.permission.SUBSCRIBED_FEEDS_READ", "android.permission.SUBSCRIBED_FEEDS_WRITE", "android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME", "android.permission.SYSTEM_ALERT_WINDOW", "android.permission.TABLET_MODE", "android.permission.TEMPORARY_ENABLE_ACCESSIBILITY", "android.permission.TRUST_LISTENER", "android.permission.TV_INPUT_HARDWARE", "android.permission.TV_VIRTUAL_REMOTE_CONTROLLER", "android.permission.UPDATE_APP_OPS_STATS", "android.permission.UPDATE_CONFIG", "android.permission.UPDATE_DEVICE_STATS", "android.permission.UPDATE_LOCK", "android.permission.UPDATE_LOCK_TASK_PACKAGES", "android.permission.USER_ACTIVITY"
+        ];
+
+        // Danh sách các cấu hình phân tách Android phổ biến
+        const COMMON_ANDROID_SPLIT_CONFIGS = [
+            "split_config.arm64_v8a", "config.arm64_v8a",
+            "split_config.armeabi_v7a", "config.armeabi_v7a",
+            "split_config.armeabi", "config.armeabi",
+            "split_config.mips", "config.mips",
+            "split_config.mips64", "config.mips64",
+            "split_config.x86", "config.x86",
+            "split_config.x86_64", "config.x86_64",
+            "split_config.x86_64_v2", "config.x86_64_v2",
+            "split_config.x86_64_v3", "config.x86_64_v3",
+            "split_config.x86_64_v4", "config.x86_64_v4",
+            "split_config.ldpi", "config.ldpi",
+            "split_config.mdpi", "config.mdpi",
+            "split_config.tvdpi", "config.tvdpi",
+            "split_config.hdpi", "config.hdpi",
+            "split_config.xhdpi", "config.xhdpi",
+            "split_config.xxhdpi", "config.xxhdpi",
+            "split_config.xxxhdpi", "config.xxxhdpi",
+            "split_config.af", "config.af",
+            "split_config.am", "config.am",
+            "split_config.ar", "config.ar",
+            "split_config.az-AZ", "config.az-AZ",
+            "split_config.bg", "config.bg",
+            "split_config.bn-BD", "config.bn-BD",
+            "split_config.br", "config.br",
+            "split_config.ca", "config.ca",
+            "split_config.cs", "config.cs",
+            "split_config.da", "config.da",
+            "split_config.de", "config.de",
+            "split_config.el", "config.el",
+            "split_config.en", "config.en",
+            "split_config.en-AU", "config.en-AU",
+            "split_config.en-GB", "config.en-GB",
+            "split_config.en-IN", "config.en-IN",
+            "split_config.es", "config.es",
+            "split_config.es-US", "config.es-US",
+            "split_config.et-EE", "config.et-EE",
+            "split_config.eu-ES", "config.eu-ES",
+            "split_config.fa", "config.fa",
+            "split_config.fi", "config.fi",
+            "split_config.fr", "config.fr",
+            "split_config.fr-CA", "config.fr-CA",
+            "split_config.gl-ES", "config.gl-ES",
+            "split_config.gu-IN", "config.gu-IN",
+            "split_config.hi", "config.hi",
+            "split_config.hr", "config.hr",
+            "split_config.hu", "config.hu",
+            "split_config.hy-AM", "config.hy-AM",
+            "split_config.in", "config.in",
+            "split_config.is-IS", "config.is-IS",
+            "split_config.it", "config.it",
+            "split_config.iw", "config.iw",
+            "split_config.ja", "config.ja",
+            "split_config.ka-GE", "config.ka-GE",
+            "split_config.kk-KZ", "config.kk-KZ",
+            "split_config.km-KH", "config.km-KH",
+            "split_config.kn-IN", "config.kn-IN",
+            "split_config.ko", "config.ko",
+            "split_config.ky-KG", "config.ky-KG",
+            "split_config.lo-LA", "config.lo-LA",
+            "split_config.lt", "config.lt",
+            "split_config.lv", "config.lv",
+            "split_config.mk-MK", "config.mk-MK",
+            "split_config.ml-IN", "config.ml-IN",
+            "split_config.mn-MN", "config.mn-MN",
+            "split_config.mr-IN", "config.mr-IN",
+            "split_config.ms-MY", "config.ms-MY",
+            "split_config.my-MM", "config.my-MM",
+            "split_config.nb", "config.nb",
+            "split_config.ne-NP", "config.ne-NP",
+            "split_config.nl", "config.nl",
+            "split_config.pa-IN", "config.pa-IN",
+            "split_config.pl", "config.pl",
+            "split_config.pt", "config.pt",
+            "split_config.pt-BR", "config.pt-BR",
+            "split_config.pt-PT", "config.pt-PT",
+            "split_config.ro", "config.ro",
+            "split_config.ru", "config.ru",
+            "split_config.si-LK", "config.si-LK",
+            "split_config.sk", "config.sk",
+            "split_config.sl", "config.sl",
+            "split_config.sq-AL", "config.sq-AL",
+            "split_config.sr", "config.sr",
+            "split_config.sv", "config.sv",
+            "split_config.sw", "config.sw",
+            "split_config.ta-IN", "config.ta-IN",
+            "split_config.te-IN", "config.te-IN",
+            "split_config.th", "config.th",
+            "split_config.tl", "config.tl",
+            "split_config.tr", "config.tr",
+            "split_config.uk", "config.uk",
+            "split_config.ur-PK", "config.ur-PK",
+            "split_config.uz-UZ", "config.uz-UZ",
+            "split_config.vi", "config.vi",
+            "split_config.zh", "config.zh",
+            "split_config.zh-CN", "config.zh-CN",
+            "split_config.zh-HK", "config.zh-HK",
+            "split_config.zh-TW", "config.zh-TW",
+            "split_config.zu", "config.zu"
+        ];
+        
+        let isLocalesExpanded = false;
+        let dynamicExpansionCount = 0; // Biến đếm cho các tệp mở rộng được thêm động
+
+        // Hàm tạo một cặp input cho tên ứng dụng theo ngôn ngữ
+        function createLocaleInput(key = '', value = '') {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'form-row locale-input-pair'; // Use form-row
+            rowDiv.innerHTML = `
+                <div class="content-wrapper">
+                    <div class="locale-code-wrapper">
+                        <label for="locale-code-${Date.now()}" class="block text-sm font-medium text-gray-700">Mã ngôn ngữ (Locale Code):</label>
+                        <input type="text" id="locale-code-${Date.now()}" class="locale-code-input mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="en-US" value="${value ? key : ''}">
+                    </div>
+                    <div class="locale-name-wrapper">
+                        <label for="locale-name-${Date.now()}" class="block text-sm font-medium text-gray-700">Tên ứng dụng:</label>
+                        <input type="text" id="locale-name-${Date.now()}" class="locale-name-input mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="Example App" value="${value ? value : ''}">
+                    </div>
+                </div>
+                <div class="remove-btn-wrapper offset-for-label">
+                    <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                </div>
+            `;
+
+            rowDiv.querySelector('.btn-remove-icon').addEventListener('click', (e) => {
+                e.target.blur(); // Blur the button that was clicked
+                rowDiv.remove();
+                document.getElementById('addLocaleBtn').focus(); // Focus the "Add Locale" button
+            });
+            return rowDiv;
+        }
+
+        // Thêm một cặp input mới cho tên ứng dụng theo ngôn ngữ
+        function addLocaleInput(key = '', value = '') {
+            const container = document.getElementById('locales_name_container');
+            const newLocaleInput = createLocaleInput(key, value);
+            
+            // Nếu danh sách đang thu gọn, tự động mở rộng khi thêm mới
+            if (!isLocalesExpanded) {
+                isLocalesExpanded = true; // Thay đổi trạng thái thành mở rộng
+                const localeInputs = document.querySelectorAll('#locales_name_container .locale-input-pair');
+                localeInputs.forEach(el => el.classList.remove('hidden-locale')); // Hiển thị tất cả các mục đã ẩn
+                document.getElementById('toggle-locales-btn').textContent = 'Thu gọn danh sách'; // Cập nhật văn bản nút
+            }
+
+            container.appendChild(newLocaleInput);
+            // Đảm bảo input mới được hiển thị (nó sẽ hiển thị mặc định nếu isLocalesExpanded là true)
+            newLocaleInput.classList.remove('hidden-locale'); 
+        }
+
+        // Hàm tạo input cho tệp mở rộng
+        // Thêm các tham số filePlaceholder và pathPlaceholder để tùy chỉnh placeholder
+        function createExpansionInput(file = '', install_location = 'EXTERNAL_STORAGE', install_path = '', filePlaceholder = '', pathPlaceholder = '') {
+            console.log('createExpansionInput received:', { file, install_location, install_path, filePlaceholder, pathPlaceholder }); // Debug log
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'expansion-input-group'; // No longer needs 'relative' here, it's in CSS
+            groupDiv.innerHTML = `
+                <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                <div class="w-full mb-3"> <!-- Added mb-3 for spacing -->
+                    <label for="expansion-file-${Date.now()}" class="block text-sm font-medium text-gray-700">Tên tệp (file)</label>
+                    <input type="text" id="expansion-file-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 file-input" placeholder="${filePlaceholder}" value="${file}">
+                </div>
+                <div class="w-full mb-3">
+                    <label for="expansion-location-${Date.now()}" class="block text-sm font-medium text-gray-700">Vị trí cài đặt (install_location)</label>
+                    <input type="text" id="expansion-location-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" value="${install_location}" readonly>
+                </div>
+                <div class="w-full"> <!-- No mb-3 on last item -->
+                    <label for="expansion-path-${Date.now()}" class="block text-sm font-medium text-gray-700">Đường dẫn cài đặt (install_path)</label>
+                    <input type="text" id="expansion-path-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 path-input" placeholder="${pathPlaceholder}" value="${install_path}">
+                </div>
+            `;
+            
+            groupDiv.querySelector('.btn-remove-icon').addEventListener('click', (e) => {
+                e.target.blur(); // Blur the button that was clicked
+                groupDiv.remove();
+                document.getElementById('addExpansionInputBtn').focus(); // Focus the "Add Expansion" button
+            });
+            return groupDiv;
+        }
+
+        // Hàm thêm một cặp input mới cho tệp mở rộng (được gọi từ nút "Thêm Tệp mở rộng")
+        function addDynamicExpansionInput() { // Removed default parameters here to ensure they are calculated
+            let filePlaceholder = '';
+            let pathPlaceholder = '';
+
+            if (dynamicExpansionCount === 0) {
+                filePlaceholder = "Full/Path/To/Expansion/File/Inside/Xapk/File/ExpansionFile1";
+                pathPlaceholder = "Full/Path/To/Install/The/ExpansionFile1";
+            } else if (dynamicExpansionCount === 1) {
+                filePlaceholder = "Full/Path/To/Expansion/File/Inside/Xapk/File/ExpansionFile2";
+                pathPlaceholder = "Full/Path/To/Install/The/ExpansionFile2";
+            } else {
+                // For subsequent additions, use a generic pattern
+                filePlaceholder = `Full/Path/To/Expansion/File/Inside/Xapk/File/ExpansionFile${dynamicExpansionCount + 1}`;
+                pathPlaceholder = `Full/Path/To/Install/The/ExpansionFile${dynamicExpansionCount + 1}`;
+            }
+
+            const container = document.getElementById('expansions_container');
+            // Explicitly pass empty strings for file and install_path values
+            container.appendChild(createExpansionInput('', 'EXTERNAL_STORAGE', '', filePlaceholder, pathPlaceholder));
+            dynamicExpansionCount++; // Tăng biến đếm sau khi thêm
+        }
+
+        // Hàm thêm các input tệp mở rộng mặc định (chỉ gọi khi tải trang)
+        function addDefaultExpansionInput(filePlaceholder, pathPlaceholder) { // Only takes placeholders
+            const container = document.getElementById('expansions_container');
+            // Explicitly pass empty strings for file and install_path values
+            container.appendChild(createExpansionInput('', 'EXTERNAL_STORAGE', '', filePlaceholder, pathPlaceholder));
+        }
+
+
+        // Tạo input với tính năng tự động hoàn thành
+        function createArrayInputWithAutocomplete(placeholder, commonList, value = '') { // Added commonList parameter
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'form-row'; // Use form-row
+            rowDiv.innerHTML = `
+                <div class="content-wrapper single-input-wrapper">
+                    <div class="autocomplete-container w-full">
+                        <label for="input-${Date.now()}" class="block text-sm font-medium text-gray-700">${placeholder.includes('Quyền') ? 'Tên quyền:' : 'Cấu hình phân tách:'}</label>
+                        <input type="text" id="input-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="${placeholder}" value="${value}">
+                        <div class="autocomplete-list hidden"></div>
+                    </div>
+                </div>
+                <div class="remove-btn-wrapper offset-for-label">
+                    <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                </div>
+            `;
+            
+            const input = rowDiv.querySelector('input');
+            const suggestionsList = rowDiv.querySelector('.autocomplete-list');
+            let activeItemIndex = -1;
+            let filteredItems = []; // Changed from filteredPermissions
+
+            const updateSuggestions = () => {
+                const query = input.value.toLowerCase();
+                suggestionsList.innerHTML = '';
+                activeItemIndex = -1;
+
+                if (query.length > 0) {
+                    filteredItems = commonList.filter(item => // Use commonList here
+                        item.toLowerCase().includes(query)
+                    );
+                    if (filteredItems.length > 0) {
+                        suggestionsList.classList.remove('hidden');
+                        filteredItems.forEach((item, index) => {
+                            const listItem = document.createElement('div');
+                            listItem.className = 'autocomplete-item';
+                            listItem.textContent = item;
+                            listItem.addEventListener('click', () => {
+                                input.value = item;
+                                suggestionsList.classList.add('hidden');
+                            });
+                            suggestionsList.appendChild(listItem);
+                        });
+                    } else {
+                        suggestionsList.classList.add('hidden');
+                    }
+                } else {
+                    suggestionsList.classList.add('hidden');
+                }
+            };
+            
+            input.addEventListener('input', updateSuggestions);
+
+            input.addEventListener('keydown', (e) => {
+                if (suggestionsList.children.length > 0) {
+                    const items = suggestionsList.children;
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        activeItemIndex = (activeItemIndex + 1) % items.length;
+                        updateActiveItem(items);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        activeItemIndex = (activeItemIndex - 1 + items.length) % items.length;
+                        updateActiveItem(items);
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (activeItemIndex > -1) {
+                            input.value = items[activeItemIndex].textContent;
+                            suggestionsList.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+
+            const updateActiveItem = (items) => {
+                for (let i = 0; i < items.length; i++) {
+                    items[i].classList.remove('active');
+                }
+                if (activeItemIndex > -1) {
+                    items[activeItemIndex].classList.add('active');
+                    items[activeItemIndex].scrollIntoView({ block: 'nearest' });
+                }
+            };
+            
+            document.addEventListener('click', (e) => {
+                if (!rowDiv.contains(e.target)) { // Changed to rowDiv
+                    suggestionsList.classList.add('hidden');
+                }
+            });
+            
+            rowDiv.querySelector('.btn-remove-icon').addEventListener('click', (e) => {
+                e.target.blur(); // Blur the button that was clicked
+                rowDiv.remove();
+                // No need to focus addPermissionBtn here, as this is for dynamically added permissions.
+                // The addPermissionBtn is for adding new ones.
+            });
+            return rowDiv;
+        }
+
+        // Thêm một input mới cho quyền
+        function addPermissionInput(value = '') {
+            console.log('addPermissionInput function executed.'); // Debug log
+            const container = document.getElementById('permissions_container');
+            if (!container) {
+                console.error('Error: #permissions_container not found.');
+                return;
+            }
+            // Pass COMMON_ANDROID_PERMISSIONS to createArrayInputWithAutocomplete
+            const newPermissionInput = createArrayInputWithAutocomplete("android.permission.INTERNET", COMMON_ANDROID_PERMISSIONS, value);
+            container.appendChild(newPermissionInput);
+            console.log('New permission input appended to container.'); // Debug log
+        }
+        
+        // Tạo input cho cấu hình phân tách
+        function createSplitConfigInput(placeholder = '', value = '') { // Added placeholder parameter
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'form-row'; // Use form-row
+            rowDiv.innerHTML = `
+                <div class="content-wrapper single-input-wrapper">
+                    <div class="autocomplete-container w-full">
+                        <label for="split-config-input-${Date.now()}" class="block text-sm font-medium text-gray-700">Cấu hình phân tách:</label>
+                        <input type="text" id="split-config-input-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3" placeholder="${placeholder}" value="${value}">
+                        <div class="autocomplete-list hidden"></div>
+                    </div>
+                </div>
+                <div class="remove-btn-wrapper offset-for-label">
+                    <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                </div>
+            `;
+            
+            const input = rowDiv.querySelector('input');
+            const suggestionsList = rowDiv.querySelector('.autocomplete-list');
+            let activeItemIndex = -1;
+            let filteredItems = [];
+
+            const updateSuggestions = () => {
+                const query = input.value.toLowerCase();
+                suggestionsList.innerHTML = '';
+                activeItemIndex = -1;
+
+                if (query.length > 0) {
+                    filteredItems = COMMON_ANDROID_SPLIT_CONFIGS.filter(item => 
+                        item.toLowerCase().includes(query)
+                    );
+                    if (filteredItems.length > 0) {
+                        suggestionsList.classList.remove('hidden');
+                        filteredItems.forEach((item, index) => {
+                            const listItem = document.createElement('div');
+                            listItem.className = 'autocomplete-item';
+                            listItem.textContent = item;
+                            listItem.addEventListener('click', () => {
+                                input.value = item;
+                                suggestionsList.classList.add('hidden');
+                            });
+                            suggestionsList.appendChild(listItem);
+                        });
+                    } else {
+                        suggestionsList.classList.add('hidden');
+                    }
+                } else {
+                    suggestionsList.classList.add('hidden');
+                }
+            };
+            
+            input.addEventListener('input', updateSuggestions);
+
+            input.addEventListener('keydown', (e) => {
+                if (suggestionsList.children.length > 0) {
+                    const items = suggestionsList.children;
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        activeItemIndex = (activeItemIndex + 1) % items.length;
+                        updateActiveItem(items);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        activeItemIndex = (activeItemIndex - 1 + items.length) % items.length;
+                        updateActiveItem(items);
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (activeItemIndex > -1) {
+                            input.value = items[activeItemIndex].textContent;
+                            suggestionsList.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+
+            const updateActiveItem = (items) => {
+                for (let i = 0; i < items.length; i++) {
+                    items[i].classList.remove('active');
+                }
+                if (activeItemIndex > -1) {
+                    items[activeItemIndex].classList.add('active');
+                    items[activeItemIndex].scrollIntoView({ block: 'nearest' });
+                }
+            };
+            
+            document.addEventListener('click', (e) => {
+                if (!rowDiv.contains(e.target)) { // Changed to rowDiv
+                    suggestionsList.classList.add('hidden');
+                }
+            });
+
+            rowDiv.querySelector('.btn-remove-icon').addEventListener('click', (e) => {
+                e.target.blur(); // Blur the button that was clicked
+                rowDiv.remove();
+                document.getElementById('addSplitConfigBtn').focus(); // Focus the "Add Split Config" button
+            });
+            return rowDiv;
+        }
+
+        // Thêm một input mới cho cấu hình phân tách
+        function addSplitConfigInput(placeholder = '', value = '') { // Added placeholder parameter
+            const container = document.getElementById('split_configs_container');
+            container.appendChild(createSplitConfigInput(placeholder, value));
+        }
+
+        // Tạo cặp input cho các APK phân tách
+        function createSplitApkInput(file = '', id = '') {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'form-row'; // Use form-row
+            rowDiv.innerHTML = `
+                <div class="content-wrapper">
+                    <div class="locale-code-wrapper"> <!-- Re-using locale-code-wrapper for file input width -->
+                        <label for="split-apk-file-${Date.now()}" class="block text-sm font-medium text-gray-700">Tên tệp (file):</label>
+                        <input type="text" id="split-apk-file-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 split-apk-file-input" placeholder="base.apk" value="${file}">
+                    </div>
+                    <div class="locale-name-wrapper"> <!-- Re-using locale-name-wrapper for ID input width -->
+                        <label for="split-apk-id-${Date.now()}" class="block text-sm font-medium text-gray-700">ID (id):</label>
+                        <input type="text" id="split-apk-id-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 split-apk-id-input" placeholder="base" value="${id}">
+                    </div>
+                </div>
+                <div class="remove-btn-wrapper offset-for-label">
+                    <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                </div>
+            `;
+            
+            rowDiv.querySelector('.btn-remove-icon').addEventListener('click', (e) => {
+                e.target.blur(); // Blur the button that was clicked
+                rowDiv.remove();
+                document.getElementById('addSplitApkBtn').focus(); // Focus the "Add Split Apk" button
+            });
+            return rowDiv;
+        }
+
+        // Thêm một cặp input mới cho các APK phân tách
+        function addSplitApkInput(file = '', id = '') {
+            const container = document.getElementById('split_apks_container');
+            container.appendChild(createSplitApkInput(file, id));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Thêm một vài input mặc định khi tải trang
+            // Các giá trị mặc định đã được bỏ trống để hiển thị placeholder
+            addLocaleInput('', ''); // Mã ngôn ngữ trống, tên ứng dụng trống
+            addLocaleInput('', '');
+            addLocaleInput('', '');
+            addLocaleInput('', '');
+
+            // Xử lý nút "Mở rộng danh sách"
+            const toggleLocalesBtn = document.getElementById('toggle-locales-btn');
+            toggleLocalesBtn.addEventListener('click', () => {
+                isLocalesExpanded = !isLocalesExpanded;
+                const localeInputs = document.querySelectorAll('#locales_name_container .locale-input-pair');
+                localeInputs.forEach((input, index) => {
+                    if (index >= 2) { // Ẩn từ mục thứ 3 trở đi
+                        input.classList.toggle('hidden-locale', !isLocalesExpanded);
+                    }
+                });
+                toggleLocalesBtn.textContent = isLocalesExpanded ? 'Thu gọn danh sách' : 'Mở rộng danh sách';
+            });
+            
+            // Ban đầu thu gọn danh sách locale
+            const initialLocaleInputs = document.querySelectorAll('#locales_name_container .locale-input-pair');
+            initialLocaleInputs.forEach((input, index) => {
+                if (index >= 2) {
+                    input.classList.add('hidden-locale');
+                }
+            });
+            // Đảm bảo biến trạng thái được đặt đúng sau khi ẩn các mục ban đầu
+            isLocalesExpanded = false; 
+            toggleLocalesBtn.textContent = 'Mở rộng danh sách'; // Đặt lại text ban đầu
+
+            // Gán sự kiện click cho nút "Thêm Ngôn ngữ"
+            const addLocaleBtn = document.getElementById('addLocaleBtn');
+            addLocaleBtn.addEventListener('click', () => addLocaleInput());
+
+            // Gán sự kiện click cho nút "Thêm Tệp mở rộng"
+            const addExpansionInputBtn = document.getElementById('addExpansionInputBtn');
+            addExpansionInputBtn.addEventListener('click', () => addDynamicExpansionInput()); // Gọi hàm thêm động
+
+            // Thêm các input mặc định cho tệp mở rộng
+            addDefaultExpansionInput('Android/obb/com.example.app/main.12.com.example.app.obb', 'Android/obb/com.example.app/main.12.com.example.app.obb');
+            addDefaultExpansionInput('Android/obb/com.example.app/patch.12.com.example.app.obb', 'Android/obb/com.example.app/patch.12.com.example.app.obb');
+
+            // Gán sự kiện click cho nút "Thêm Quyền"
+            const addPermissionBtn = document.getElementById('addPermissionBtn');
+            if (addPermissionBtn) {
+                addPermissionBtn.addEventListener('click', () => {
+                    console.log('Button "Thêm Quyền" clicked.'); // Debug log
+                    addPermissionInput();
+                });
+            } else {
+                console.error('Button "Thêm Quyền" not found on DOMContentLoaded.');
+            }
+
+            // Gán sự kiện click cho nút "Thêm Cấu hình"
+            const addSplitConfigBtn = document.getElementById('addSplitConfigBtn');
+            if (addSplitConfigBtn) {
+                addSplitConfigBtn.addEventListener('click', () => {
+                    console.log('Button "Thêm Cấu hình" clicked.'); // Debug log
+                    addSplitConfigInput(); // Now calls with no placeholder for dynamic additions
+                });
+            } else {
+                console.error('Button "Thêm Cấu hình" not found on DOMContentLoaded.');
+            }
+
+            // Thêm 3 input mặc định cho Cấu hình phân tách với placeholder cụ thể
+            addSplitConfigInput('config.arm64_v8a');
+            addSplitConfigInput('config.xxhdpi');
+            addSplitConfigInput('config.en');
+            
+            // Thêm các input mặc định cho các phần khác (đã bỏ trống giá trị)
+            addPermissionInput('');
+            addPermissionInput('');
+            addSplitApkInput('', '');
+            addSplitApkInput('', '');
+            addSplitApkInput('', '');
+            addSplitApkInput('', '');
+        });
+
+        // Hàm để hiển thị/ẩn lỗi validation
+        function validateField(inputElement, errorElement, message, validationFn) {
+            if (validationFn(inputElement.value)) {
+                inputElement.classList.remove('input-error');
+                errorElement.classList.add('hidden');
+                return true;
+            } else {
+                inputElement.classList.add('input-error');
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
+                return false;
+            }
+        }
+
+        // Hàm chính để tạo và tải xuống manifest.json
+        function downloadManifest() {
+            let isValid = true;
+
+            // Validate basic info fields
+            isValid = validateField(document.getElementById('package_name'), document.getElementById('package_name_error'), 'Tên gói không được để trống.', (val) => val.trim() !== '') && isValid;
+            isValid = validateField(document.getElementById('name'), document.getElementById('name_error'), 'Tên ứng dụng không được để trống.', (val) => val.trim() !== '') && isValid;
+            isValid = validateField(document.getElementById('version_code'), document.getElementById('version_code_error'), 'Mã phiên bản không được để trống và phải là số.', (val) => val.trim() !== '' && !isNaN(val)) && isValid;
+            isValid = validateField(document.getElementById('min_sdk_version'), document.getElementById('min_sdk_version_error'), 'Phiên bản SDK tối thiểu không được để trống và phải là số.', (val) => val.trim() !== '' && !isNaN(val)) && isValid;
+            isValid = validateField(document.getElementById('target_sdk_version'), document.getElementById('target_sdk_version_error'), 'Phiên bản SDK mục tiêu không được để trống và phải là số.', (val) => val.trim() !== '' && !isNaN(val)) && isValid;
+            isValid = validateField(document.getElementById('total_size'), document.getElementById('total_size_error'), 'Tổng kích thước không được để trống và phải là số.', (val) => val.trim() !== '' && !isNaN(val)) && isValid;
+
+            if (!isValid) {
+                // Scroll to the first error if any
+                const firstErrorField = document.querySelector('.input-error');
+                if (firstErrorField) {
+                    firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return; // Stop the process if validation fails
+            }
+
+            // Lấy thông tin từ các input cơ bản
+            const xapkVersion = document.getElementById('xapk_version').value;
+            const packageName = document.getElementById('package_name').value;
+            const appName = document.getElementById('name').value;
+            const versionCode = document.getElementById('version_code').value; 
+            const versionName = document.getElementById('version_name').value;
+            const minSdkVersion = document.getElementById('min_sdk_version').value; 
+            const targetSdkVersion = document.getElementById('target_sdk_version').value; 
+            const totalSize = document.getElementById('total_size').value; 
+            const icon = document.getElementById('icon').value;
+            const expansionVersion = document.getElementById('expansion_version').value; 
+
+            // Thu thập thông tin từ các trường động
+            const localesName = {};
+            document.querySelectorAll('#locales_name_container .locale-input-pair').forEach(pair => {
+                const key = pair.querySelector('.locale-code-input').value;
+                const value = pair.querySelector('.locale-name-input').value;
+                if (key && value) {
+                    localesName[key] = value;
+                }
+            });
+
+            const permissions = [];
+            document.querySelectorAll('#permissions_container input').forEach(input => {
+                if (input.value) {
+                    permissions.push(input.value);
+                }
+            });
+
+            const splitConfigs = [];
+            document.querySelectorAll('#split_configs_container input').forEach(input => {
+                if (input.value) {
+                    splitConfigs.push(input.value);
+                }
+            });
+
+            const expansions = [];
+            document.querySelectorAll('#expansions_container .expansion-input-group').forEach(group => { // Changed selector
+                const file = group.querySelector('.file-input').value;
+                const install_location = group.querySelector('input[readonly]').value; // Select by readonly attribute
+                const install_path = group.querySelector('.path-input').value;
+                if (file) {
+                    expansions.push({
+                        file: file,
+                        install_location: install_location,
+                        install_path: install_path
+                    });
+                }
+            });
+            
+            const splitApks = [];
+            document.querySelectorAll('#split_apks_container .form-row').forEach(row => {
+                const file = row.querySelector('.split-apk-file-input').value;
+                const id = row.querySelector('.split-apk-id-input').value; 
+                if (file && id) {
+                    splitApks.push({
+                        file: file,
+                        id: id
+                    });
+                }
+            });
+
+            // Tạo đối tượng manifest.json
+            const manifest = {
+                xapk_version: xapkVersion,
+                package_name: packageName,
+                name: appName,
+                locales_name: localesName,
+                version_code: versionCode,
+                version_name: versionName,
+                min_sdk_version: minSdkVersion,
+                target_sdk_version: targetSdkVersion,
+                permissions: permissions,
+                split_configs: splitConfigs,
+                total_size: totalSize,
+                icon: icon,
+                expansion_version: expansionVersion,
+                expansions: expansions,
+                split_apks: splitApks
+            };
+
+            // Tạo blob và tải xuống
+            const jsonString = JSON.stringify(manifest, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manifest.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
