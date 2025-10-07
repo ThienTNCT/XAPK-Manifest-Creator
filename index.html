@@ -440,8 +440,8 @@
                             </button>
                         </div>
                     </div>
-                    <div class="remove-btn-wrapper offset-for-label">
-                        <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1">x</button>
+                    <div class="remove-btn-wrapper offset-for-label" style="background-color: transparent;">
+                        <button type="button" class="btn-remove-icon" title="Xóa" tabindex="-1" style="visibility: hidden;">x</button>
                     </div>
                 </div>
             </div>
@@ -564,6 +564,7 @@
         
         let isLocalesExpanded = false;
         let dynamicExpansionCount = 0; // Biến đếm cho các tệp mở rộng được thêm động
+        let dynamicSplitApkCount = 0; // Biến đếm cho các APK được thêm động
 
         // Hàm tạo một cặp input cho tên ứng dụng theo ngôn ngữ
         function createLocaleInput(key = '', value = '') {
@@ -890,18 +891,18 @@
         }
 
         // Tạo cặp input cho các APK phân tách
-        function createSplitApkInput(file = '', id = '') {
+        function createSplitApkInput(file = '', id = '', filePlaceholder = 'base.apk', idPlaceholder = 'base') {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'form-row'; // Use form-row
             rowDiv.innerHTML = `
                 <div class="content-wrapper">
                     <div class="locale-code-wrapper"> <!-- Re-using locale-code-wrapper for file input width -->
                         <label for="split-apk-file-${Date.now()}" class="block text-sm font-medium text-gray-700">Tên tệp (file):</label>
-                        <input type="text" id="split-apk-file-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 split-apk-file-input" placeholder="base.apk" value="${file}">
+                        <input type="text" id="split-apk-file-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 split-apk-file-input" placeholder="${filePlaceholder}" value="${file}">
                     </div>
                     <div class="locale-name-wrapper"> <!-- Re-using locale-name-wrapper for ID input width -->
                         <label for="split-apk-id-${Date.now()}" class="block text-sm font-medium text-gray-700">ID (id):</label>
-                        <input type="text" id="split-apk-id-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 split-apk-id-input" placeholder="base" value="${id}">
+                        <input type="text" id="split-apk-id-${Date.now()}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 split-apk-id-input" placeholder="${idPlaceholder}" value="${id}">
                     </div>
                 </div>
                 <div class="remove-btn-wrapper offset-for-label">
@@ -918,9 +919,9 @@
         }
 
         // Thêm một cặp input mới cho các APK phân tách
-        function addSplitApkInput(file = '', id = '') {
+        function addSplitApkInput(file = '', id = '', filePlaceholder = 'base.apk', idPlaceholder = 'base') {
             const container = document.getElementById('split_apks_container');
-            container.appendChild(createSplitApkInput(file, id));
+            container.appendChild(createSplitApkInput(file, id, filePlaceholder, idPlaceholder));
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -989,6 +990,19 @@
                 console.error('Button "Thêm Cấu hình" not found on DOMContentLoaded.');
             }
 
+            // Gán sự kiện click cho nút "Thêm APK"
+            const addSplitApkBtn = document.getElementById('addSplitApkBtn');
+            if (addSplitApkBtn) {
+                addSplitApkBtn.addEventListener('click', () => {
+                    dynamicSplitApkCount++; // Tăng biến đếm
+                    const filePlaceholder = `ConfigApkFileName${dynamicSplitApkCount}`;
+                    const idPlaceholder = `IdConfigApkFileName${dynamicSplitApkCount}`;
+                    addSplitApkInput('', '', filePlaceholder, idPlaceholder);
+                });
+            } else {
+                console.error('Button "Thêm APK" not found on DOMContentLoaded.');
+            }
+
             // Thêm 3 input mặc định cho Cấu hình phân tách với placeholder cụ thể
             addSplitConfigInput('config.arm64_v8a');
             addSplitConfigInput('config.xxhdpi');
@@ -997,10 +1011,10 @@
             // Thêm các input mặc định cho các phần khác (đã bỏ trống giá trị)
             addPermissionInput('');
             addPermissionInput('');
-            addSplitApkInput('', '');
-            addSplitApkInput('', '');
-            addSplitApkInput('', '');
-            addSplitApkInput('', '');
+            addSplitApkInput('', '', 'com.example.app.apk', 'base');
+            addSplitApkInput('', '', 'config.arm64_v8a.apk', 'config.arm64_v8a');
+            addSplitApkInput('', '', 'config.xxhdpi.apk', 'config.xxhdpi');
+            addSplitApkInput('', '', 'config.en.apk', 'config.en');
         });
 
         // Hàm để hiển thị/ẩn lỗi validation
