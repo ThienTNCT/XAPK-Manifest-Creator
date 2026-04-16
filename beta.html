@@ -27,27 +27,26 @@
             margin-bottom: 15px;
         }
         .form-group { display: flex; flex-direction: column; }
+        .full-width { grid-column: span 2; }
+        
         label { font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #555;}
-        input, textarea {
+        .flex-label { display: flex; justify-content: space-between; align-items: center; }
+        .sync-toggle { font-weight: normal; font-size: 13px; cursor: pointer; color: #e67e22; display: flex; align-items: center; gap: 5px;}
+        
+        input[type="text"], input[type="number"], textarea {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-family: inherit;
         }
         textarea { resize: vertical; min-height: 100px; }
-        .full-width { grid-column: span 2; }
         
-        /* Highlight cho các phần tự động tạo để bám sát cấu trúc */
-        .auto-generated-info {
-            grid-column: span 2;
-            background-color: #e8f4fd;
-            border-left: 4px solid #3498db;
-            padding: 10px 15px;
+        /* Font monospace cho các ô chứa JSON để dễ nhìn code */
+        .json-area {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f8f9fa;
             font-size: 13px;
-            color: #2980b9;
-            border-radius: 0 4px 4px 0;
-            margin-top: -10px;
-            margin-bottom: 10px;
+            min-height: 150px;
         }
 
         button {
@@ -87,16 +86,22 @@
 
             <div class="form-group">
                 <label>Package Name (Tên gói ứng dụng):</label>
-                <input type="text" id="packageName" value="com.example.app">
+                <input type="text" id="packageName" value="com.example.app" oninput="updateSyncData()">
             </div>
 
             <div class="form-group">
                 <label>App Name (Tên ứng dụng):</label>
-                <input type="text" id="appName" value="My Application">
+                <input type="text" id="appName" value="My Application" oninput="updateSyncData()">
             </div>
             
-            <div class="auto-generated-info">
-                <em>* Mục <b>locales_name</b> sẽ tự động được tạo tại đây dựa trên App Name (với hơn 70 ngôn ngữ).</em>
+            <div class="form-group full-width">
+                <div class="flex-label">
+                    <label>Locales Name (Danh sách ngôn ngữ):</label>
+                    <label class="sync-toggle">
+                        <input type="checkbox" id="syncLocales" checked onchange="updateSyncData()"> Auto-sync (Tự động đồng bộ)
+                    </label>
+                </div>
+                <textarea id="localesArea" class="json-area"></textarea>
             </div>
 
             <div class="form-group">
@@ -125,7 +130,7 @@ android.permission.ACCESS_NETWORK_STATE</textarea>
 
             <div class="form-group full-width">
                 <label>Split Configs (ID tệp chia nhỏ - Mỗi ID 1 dòng):</label>
-                <textarea id="splitConfigs">config.xxhdpi
+                <textarea id="splitConfigs" oninput="updateSyncData()">config.xxhdpi
 config.en
 config.arm64_v8a</textarea>
             </div>
@@ -142,20 +147,32 @@ config.arm64_v8a</textarea>
 
             <div class="form-group full-width">
                 <label>Expansion Version (Phiên bản OBB):</label>
-                <input type="text" id="expansionVersion" value="1">
-            </div>
-
-            <div class="auto-generated-info">
-                <em>* Mục <b>expansions</b> (đường dẫn OBB) sẽ tự động được tạo dựa trên Package Name và Expansion Version.</em>
+                <input type="text" id="expansionVersion" value="1" oninput="updateSyncData()">
             </div>
 
             <div class="form-group full-width">
-                <label>Base APK File Name (Tên tệp APK gốc - dùng cho mảng split_apks):</label>
-                <input type="text" id="baseApk" value="base.apk">
+                <div class="flex-label">
+                    <label>Expansions (Danh sách tệp mở rộng/OBB):</label>
+                    <label class="sync-toggle">
+                        <input type="checkbox" id="syncExpansions" checked onchange="updateSyncData()"> Auto-sync (Tự động đồng bộ)
+                    </label>
+                </div>
+                <textarea id="expansionsArea" class="json-area"></textarea>
             </div>
 
-            <div class="auto-generated-info">
-                <em>* Mục <b>split_apks</b> cuối cùng sẽ tự động được gộp từ Base APK và danh sách Split Configs ở trên.</em>
+            <div class="form-group full-width">
+                <label>Base APK File Name (Tên tệp APK gốc):</label>
+                <input type="text" id="baseApk" value="base.apk" oninput="updateSyncData()">
+            </div>
+
+            <div class="form-group full-width">
+                <div class="flex-label">
+                    <label>Split APKs (Danh sách tệp APK chia nhỏ):</label>
+                    <label class="sync-toggle">
+                        <input type="checkbox" id="syncSplitApks" checked onchange="updateSyncData()"> Auto-sync (Tự động đồng bộ)
+                    </label>
+                </div>
+                <textarea id="splitApksArea" class="json-area"></textarea>
             </div>
         </div>
 
@@ -168,104 +185,103 @@ config.arm64_v8a</textarea>
     </div>
 
     <script>
-        // Danh sách các mã ngôn ngữ theo chuẩn
         const languageCodes = ["af","am","ar","az-AZ","bg","bn-BD","br","ca","cs","da","de","el","en","en-AU","en-GB","en-IN","es","es-US","et-EE","eu-ES","fa","fi","fr","fr-CA","gl-ES","gu-IN","hi","hr","hu","hy-AM","in","is-IS","it","iw","ja","ka-GE","kk-KZ","km-KH","kn-IN","ko","ky-KG","lo-LA","lt","lv","mk-MK","ml-IN","mn-MN","mr-IN","ms-MY","my-MM","nb","ne-NP","nl","pa-IN","pl","pt","pt-BR","pt-PT","ro","ru","si-LK","sk","sl","sq-AL","sr","sv","sw","ta-IN","te-IN","th","tl","tr","uk","ur-PK","uz-UZ","vi","zh","zh-CN","zh-HK","zh-TW","zu"];
 
-        function generateAndDownloadJSON() {
-            // 1. Lấy dữ liệu XAPK Version
-            const xapkVersion = document.getElementById('xapkVersion').value;
-            // 2. Tên gói
-            const packageName = document.getElementById('packageName').value;
-            // 3. Tên ứng dụng
-            const appName = document.getElementById('appName').value;
-            
-            // 4. Xử lý locales_name (Ngôn ngữ)
-            const localesObj = {};
-            languageCodes.forEach(lang => {
-                localesObj[lang] = appName;
-            });
+        // Hàm cập nhật dữ liệu tự động cho 3 Textarea JSON khi người dùng gõ
+        function updateSyncData() {
+            // 1. Cập nhật Locales Name
+            if (document.getElementById('syncLocales').checked) {
+                const appName = document.getElementById('appName').value;
+                const localesObj = {};
+                languageCodes.forEach(lang => { localesObj[lang] = appName; });
+                document.getElementById('localesArea').value = JSON.stringify(localesObj, null, 4);
+            }
 
-            // 5 & 6. Phiên bản
-            const versionCode = document.getElementById('versionCode').value;
-            const versionName = document.getElementById('versionName').value;
-            // 7 & 8. SDK
-            const minSdk = document.getElementById('minSdk').value;
-            const targetSdk = document.getElementById('targetSdk').value;
-            
-            // 9. Xử lý permissions
-            const permissionsText = document.getElementById('permissions').value;
-            const permissionsArray = permissionsText.split('\n').map(p => p.trim()).filter(p => p !== "");
+            // 2. Cập nhật Expansions
+            if (document.getElementById('syncExpansions').checked) {
+                const pkg = document.getElementById('packageName').value;
+                const expVer = document.getElementById('expansionVersion').value;
+                const expArr = [
+                    {
+                        "file": `Android/obb/${pkg}/main.${expVer}.${pkg}.obb`,
+                        "install_location": "EXTERNAL_STORAGE",
+                        "install_path": `Android/obb/${pkg}/main.${expVer}.${pkg}.obb`
+                    },
+                    {
+                        "file": `Android/obb/${pkg}/patch.${expVer}.${pkg}.obb`,
+                        "install_location": "EXTERNAL_STORAGE",
+                        "install_path": `Android/obb/${pkg}/patch.${expVer}.${pkg}.obb`
+                    }
+                ];
+                document.getElementById('expansionsArea').value = JSON.stringify(expArr, null, 4);
+            }
 
-            // 10. Xử lý split_configs
-            const splitConfigsText = document.getElementById('splitConfigs').value;
-            const splitConfigsArray = splitConfigsText.split('\n').map(s => s.trim()).filter(s => s !== "");
-
-            // 11, 12, 13. Kích thước, Icon, Phiên bản OBB
-            const totalSize = document.getElementById('totalSize').value;
-            const iconName = document.getElementById('icon').value;
-            const expVersion = document.getElementById('expansionVersion').value;
-            
-            // 14. Xử lý expansions
-            const expansionsArray = [
-                {
-                    "file": `Android/obb/${packageName}/main.${expVersion}.${packageName}.obb`,
-                    "install_location": "EXTERNAL_STORAGE",
-                    "install_path": `Android/obb/${packageName}/main.${expVersion}.${packageName}.obb`
-                },
-                {
-                    "file": `Android/obb/${packageName}/patch.${expVersion}.${packageName}.obb`,
-                    "install_location": "EXTERNAL_STORAGE",
-                    "install_path": `Android/obb/${packageName}/patch.${expVersion}.${packageName}.obb`
-                }
-            ];
-
-            // 15. Xử lý split_apks
-            const baseApk = document.getElementById('baseApk').value;
-            const splitApksArray = [
-                { "file": baseApk, "id": "base" }
-            ];
-            splitConfigsArray.forEach(idConfig => {
-                splitApksArray.push({
-                    "file": idConfig + ".apk", 
-                    "id": idConfig
+            // 3. Cập nhật Split APKs
+            if (document.getElementById('syncSplitApks').checked) {
+                const baseApk = document.getElementById('baseApk').value;
+                const splitsArray = document.getElementById('splitConfigs').value.split('\n').map(s => s.trim()).filter(s => s !== "");
+                const splitApksArray = [ { "file": baseApk, "id": "base" } ];
+                splitsArray.forEach(idConfig => {
+                    splitApksArray.push({ "file": idConfig + ".apk", "id": idConfig });
                 });
-            });
+                document.getElementById('splitApksArea').value = JSON.stringify(splitApksArray, null, 4);
+            }
+        }
 
-            // ĐÓNG GÓI JSON: THỨ TỰ TUYỆT ĐỐI CHÍNH XÁC TỪ TRÊN XUỐNG DƯỚI
-            const manifestData = {
-                "xapk_version": xapkVersion,
-                "package_name": packageName,
-                "name": appName,
-                "locales_name": localesObj,
-                "version_code": versionCode,
-                "version_name": versionName,
-                "min_sdk_version": minSdk,
-                "target_sdk_version": targetSdk,
-                "permissions": permissionsArray,
-                "split_configs": splitConfigsArray,
-                "total_size": totalSize,
-                "icon": iconName,
-                "expansion_version": expVersion,
-                "expansions": expansionsArray,
-                "split_apks": splitApksArray
-            };
+        // Chạy hàm đồng bộ lần đầu tiên khi trang web vừa tải xong
+        window.onload = updateSyncData;
 
-            // Xuất ra dạng chuỗi
-            const jsonString = JSON.stringify(manifestData, null, 4);
+        function generateAndDownloadJSON() {
+            try {
+                // Đọc và kiểm tra lỗi cú pháp của 3 trường thủ công trước
+                // JSON.parse sẽ chuyển chuỗi văn bản người dùng gõ lại thành Object chuẩn
+                const localesParsed = JSON.parse(document.getElementById('localesArea').value);
+                const expansionsParsed = JSON.parse(document.getElementById('expansionsArea').value);
+                const splitApksParsed = JSON.parse(document.getElementById('splitApksArea').value);
 
-            // Cập nhật lên màn hình
-            document.getElementById('jsonPreview').textContent = jsonString;
+                // Lấy các dữ liệu còn lại
+                const permissionsArray = document.getElementById('permissions').value.split('\n').map(p => p.trim()).filter(p => p !== "");
+                const splitConfigsArray = document.getElementById('splitConfigs').value.split('\n').map(s => s.trim()).filter(s => s !== "");
 
-            // Tải xuống file
-            const fileBlob = new Blob([jsonString], { type: "application/json" });
-            const fileUrl = URL.createObjectURL(fileBlob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = fileUrl;
-            downloadLink.download = "manifest.json";
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(fileUrl);
+                // ĐÓNG GÓI JSON: Thứ tự chính xác theo yêu cầu
+                const manifestData = {
+                    "xapk_version": document.getElementById('xapkVersion').value,
+                    "package_name": document.getElementById('packageName').value,
+                    "name": document.getElementById('appName').value,
+                    "locales_name": localesParsed,
+                    "version_code": document.getElementById('versionCode').value,
+                    "version_name": document.getElementById('versionName').value,
+                    "min_sdk_version": document.getElementById('minSdk').value,
+                    "target_sdk_version": document.getElementById('targetSdk').value,
+                    "permissions": permissionsArray,
+                    "split_configs": splitConfigsArray,
+                    "total_size": document.getElementById('totalSize').value,
+                    "icon": document.getElementById('icon').value,
+                    "expansion_version": document.getElementById('expansionVersion').value,
+                    "expansions": expansionsParsed,
+                    "split_apks": splitApksParsed
+                };
+
+                const jsonString = JSON.stringify(manifestData, null, 4);
+
+                // Hiển thị Preview
+                document.getElementById('jsonPreview').textContent = jsonString;
+
+                // Tải xuống file
+                const fileBlob = new Blob([jsonString], { type: "application/json" });
+                const fileUrl = URL.createObjectURL(fileBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = fileUrl;
+                downloadLink.download = "manifest.json";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(fileUrl);
+
+            } catch (error) {
+                // Nếu người dùng nhập sai cấu trúc JSON, hiển thị thông báo lỗi
+                alert("Error (Lỗi): Cấu trúc JSON tại mục Locales, Expansions hoặc Split APKs không hợp lệ. Vui lòng kiểm tra lại dấu ngoặc và dấu phẩy.\n\nChi tiết lỗi: " + error.message);
+            }
         }
     </script>
 </body>
