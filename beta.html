@@ -37,7 +37,6 @@
             border-radius: 4px;
             font-family: inherit;
         }
-        textarea { resize: vertical; min-height: 100px; }
         
         /* CSS cho các trường nhập liệu động */
         .dynamic-container {
@@ -125,8 +124,7 @@
             <div class="form-group full-width dynamic-container">
                 <label>Locales Name (Danh sách ngôn ngữ & Dịch tự động):</label>
                 <button type="button" class="btn-action btn-add" onclick="addLocaleRow()">+ Add Locale (Thêm ngôn ngữ)</button>
-                <div id="localesContainer">
-                    </div>
+                <div id="localesContainer"></div>
                 <datalist id="localeList"></datalist>
             </div>
 
@@ -148,17 +146,18 @@
                 <input type="text" id="targetSdk" value="33">
             </div>
 
-            <div class="form-group full-width">
-                <label>Permissions (Quyền hạn - Mỗi quyền 1 dòng):</label>
-                <textarea id="permissions">android.permission.INTERNET
-android.permission.ACCESS_NETWORK_STATE</textarea>
+            <div class="form-group full-width dynamic-container">
+                <label>Permissions (Quyền hạn):</label>
+                <button type="button" class="btn-action btn-add" onclick="addPermissionRow()">+ Add Permission (Thêm quyền)</button>
+                <div id="permissionsContainer"></div>
+                <datalist id="permissionsList"></datalist>
             </div>
 
-            <div class="form-group full-width">
-                <label>Split Configs (ID cấu hình chia nhỏ - Mỗi ID 1 dòng):</label>
-                <textarea id="splitConfigs">config.xxhdpi
-config.en
-config.arm64_v8a</textarea>
+            <div class="form-group full-width dynamic-container">
+                <label>Split Configs (ID cấu hình chia nhỏ):</label>
+                <button type="button" class="btn-action btn-add" onclick="addSplitConfigRow()">+ Add Split Config (Thêm ID)</button>
+                <div id="splitConfigsContainer"></div>
+                <datalist id="splitConfigsList"></datalist>
             </div>
 
             <div class="form-group">
@@ -198,37 +197,42 @@ config.arm64_v8a</textarea>
     </div>
 
     <script>
-        // 70+ Mã ngôn ngữ bạn đã cung cấp
+        // --- DỮ LIỆU TỪ CÁC TỆP CỦA BẠN ---
         const languageCodes = ["af","am","ar","az-AZ","bg","bn-BD","br","ca","cs","da","de","el","en","en-AU","en-GB","en-IN","es","es-US","et-EE","eu-ES","fa","fi","fr","fr-CA","gl-ES","gu-IN","hi","hr","hu","hy-AM","in","is-IS","it","iw","ja","ka-GE","kk-KZ","km-KH","kn-IN","ko","ky-KG","lo-LA","lt","lv","mk-MK","ml-IN","mn-MN","mr-IN","ms-MY","my-MM","nb","ne-NP","nl","pa-IN","pl","pt","pt-BR","pt-PT","ro","ru","si-LK","sk","sl","sq-AL","sr","sv","sw","ta-IN","te-IN","th","tl","tr","uk","ur-PK","uz-UZ","vi","zh","zh-CN","zh-HK","zh-TW","zu"];
+        
+        const allPermissions = [
+            "android.permission.ACCESS_ALL_DOWNLOADS", "android.permission.ACCESS_BLUETOOTH_SHARE", "android.permission.ACCESS_CACHE_FILESYSTEM", "android.permission.ACCESS_CHECKIN_PROPERTIES", "android.permission.ACCESS_CONTENT_PROVIDERS_EXTERNALLY", "android.permission.ACCESS_DOWNLOAD_MANAGER", "android.permission.ACCESS_DOWNLOAD_MANAGER_ADVANCED", "android.permission.ACCESS_DRM_CERTIFICATES", "android.permission.ACCESS_EPHEMERAL_APPS", "android.permission.ACCESS_FM_RADIO", "android.permission.ACCESS_INPUT_FLINGER", "android.permission.ACCESS_KEYGUARD_SECURE_STORAGE", "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS", "android.permission.ACCESS_MOCK_LOCATION", "android.permission.ACCESS_MTP", "android.permission.ACCESS_NETWORK_CONDITIONS", "android.permission.ACCESS_NETWORK_STATE", "android.permission.ACCESS_NOTIFICATIONS", "android.permission.ACCESS_NOTIFICATION_POLICY", "android.permission.ACCESS_PDB_STATE", "android.permission.ACCESS_SURFACE_FLINGER", "android.permission.ACCESS_VOICE_INTERACTION_SERVICE", "android.permission.ACCESS_VR_MANAGER", "android.permission.ACCESS_WIFI_STATE", "android.permission.ACCESS_WIMAX_STATE", "android.permission.ACCOUNT_MANAGER", "android.permission.ALLOW_ANY_CODEC_FOR_PLAYBACK", "android.permission.ASEC_ACCESS", "android.permission.ASEC_CREATE", "android.permission.ASEC_DESTROY", "android.permission.ASEC_MOUNT_UNMOUNT", "android.permission.ASEC_RENAME", "android.permission.AUTHENTICATE_ACCOUNTS", "android.permission.BACKUP", "android.permission.BATTERY_STATS", "android.permission.BIND_ACCESSIBILITY_SERVICE", "android.permission.BIND_APPWIDGET", "android.permission.BIND_CARRIER_MESSAGING_SERVICE", "android.permission.BIND_CARRIER_SERVICES", "android.permission.BIND_CHOOSER_TARGET_SERVICE", "android.permission.BIND_CONDITION_PROVIDER_SERVICE", "android.permission.BIND_CONNECTION_SERVICE", "android.permission.BIND_DEVICE_ADMIN", "android.permission.BIND_DIRECTORY_SEARCH", "android.permission.BIND_DREAM_SERVICE", "android.permission.BIND_INCALL_SERVICE", "android.permission.BIND_INPUT_METHOD", "android.permission.BIND_INTENT_FILTER_VERIFIER", "android.permission.BIND_JOB_SERVICE", "android.permission.BIND_KEYGUARD_APPWIDGET", "android.permission.BIND_MIDI_DEVICE_SERVICE", "android.permission.BIND_NFC_SERVICE", "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE", "android.permission.BIND_NOTIFICATION_RANKER_SERVICE", "android.permission.BIND_PACKAGE_VERIFIER", "android.permission.BIND_PRINT_RECOMMENDATION_SERVICE", "android.permission.BIND_PRINT_SERVICE", "android.permission.BIND_PRINT_SPOOLER_SERVICE", "android.permission.BIND_QUICK_SETTINGS_TILE", "android.permission.BIND_REMOTEVIEWS", "android.permission.BIND_REMOTE_DISPLAY", "android.permission.BIND_ROUTE_PROVIDER", "android.permission.BIND_RUNTIME_PERMISSION_PRESENTER_SERVICE", "android.permission.BIND_SCREENING_SERVICE", "android.permission.BIND_TELECOM_CONNECTION_SERVICE", "android.permission.BIND_TEXT_SERVICE", "android.permission.BIND_TRUST_AGENT", "android.permission.BIND_TV_INPUT", "android.permission.BIND_TV_REMOTE_SERVICE", "android.permission.BIND_VOICE_INTERACTION", "android.permission.BIND_VPN_SERVICE", "android.permission.BIND_VR_LISTENER_SERVICE", "android.permission.BIND_WALLPAPER", "android.permission.BLUETOOTH", "android.permission.BLUETOOTH_ADMIN", "android.permission.BLUETOOTH_MAP", "android.permission.BLUETOOTH_PRIVILEGED", "android.permission.BLUETOOTH_STACK", "android.permission.BRICK", "android.permission.BROADCAST_CALLLOG_INFO", "android.permission.BROADCAST_NETWORK_PRIVILEGED", "android.permission.BROADCAST_PACKAGE_REMOVED", "android.permission.BROADCAST_PHONE_ACCOUNT_REGISTRATION", "android.permission.BROADCAST_SMS", "android.permission.BROADCAST_STICKY", "android.permission.BROADCAST_WAP_PUSH", "android.permission.CACHE_CONTENT", "android.permission.CALL_PRIVILEGED", "android.permission.CAMERA_DISABLE_TRANSMIT_LED", "android.permission.CAMERA_SEND_SYSTEM_EVENTS", "android.permission.CAPTURE_AUDIO_HOTWORD", "android.permission.CAPTURE_AUDIO_OUTPUT", "android.permission.CAPTURE_SECURE_VIDEO_OUTPUT", "android.permission.CAPTURE_TV_INPUT", "android.permission.CAPTURE_VIDEO_OUTPUT", "android.permission.CARRIER_FILTER_SMS", "android.permission.CHANGE_APP_IDLE_STATE", "android.permission.CHANGE_BACKGROUND_DATA_SETTING", "android.permission.CHANGE_COMPONENT_ENABLED_STATE", "android.permission.CHANGE_CONFIGURATION", "android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST", "android.permission.CHANGE_NETWORK_STATE", "android.permission.CHANGE_WIFI_MULTICAST_STATE", "android.permission.CHANGE_WIFI_STATE", "android.permission.CHANGE_WIMAX_STATE", "android.permission.CLEAR_APP_CACHE", "android.permission.CLEAR_APP_GRANTED_URI_PERMISSIONS", "android.permission.CLEAR_APP_USER_DATA", "android.permission.CONFIGURE_DISPLAY_COLOR_TRANSFORM", "android.permission.CONFIGURE_WIFI_DISPLAY", "android.permission.CONFIRM_FULL_BACKUP", "android.permission.CONNECTIVITY_INTERNAL", "android.permission.CONTROL_INCALL_EXPERIENCE", "android.permission.CONTROL_KEYGUARD", "android.permission.CONTROL_LOCATION_UPDATES", "android.permission.CONTROL_VPN", "android.permission.CONTROL_WIFI_DISPLAY", "android.permission.COPY_PROTECTED_DATA", "android.permission.CREATE_USERS", "android.permission.CRYPT_KEEPER", "android.permission.DELETE_CACHE_FILES", "android.permission.DELETE_PACKAGES", "android.permission.DEVICE_POWER", "android.permission.DIAGNOSTIC", "android.permission.DISABLE_KEYGUARD", "android.permission.DISPATCH_NFC_MESSAGE", "android.permission.DISPATCH_PROVISIONING_MESSAGE", "android.permission.DOWNLOAD_CACHE_NON_PURGEABLE", "android.permission.DUMP", "android.permission.DVB_DEVICE", "android.permission.EXPAND_STATUS_BAR", "android.permission.FACTORY_TEST", "android.permission.FILTER_EVENTS", "android.permission.FLASHLIGHT", "android.permission.FORCE_BACK", "android.permission.FORCE_STOP_PACKAGES", "android.permission.FRAME_STATS", "android.permission.FREEZE_SCREEN", "android.permission.GET_ACCOUNTS_PRIVILEGED", "android.permission.GET_APP_GRANTED_URI_PERMISSIONS", "android.permission.GET_APP_OPS_STATS", "android.permission.GET_DETAILED_TASKS", "android.permission.GET_INTENT_SENDER_INTENT", "android.permission.GET_PACKAGE_IMPORTANCE", "android.permission.GET_PACKAGE_SIZE", "android.permission.GET_PASSWORD", "android.permission.GET_PROCESS_STATE_AND_OOM_SCORE", "android.permission.GET_TASKS", "android.permission.GET_TOP_ACTIVITY_INFO", "android.permission.GLOBAL_SEARCH", "android.permission.GLOBAL_SEARCH_CONTROL", "android.permission.GRANT_RUNTIME_PERMISSIONS", "android.permission.HARDWARE_TEST", "android.permission.HDMI_CEC", "android.permission.INJECT_EVENTS", "android.permission.INSTALL_GRANT_RUNTIME_PERMISSIONS", "android.permission.INSTALL_LOCATION_PROVIDER", "android.permission.INSTALL_PACKAGES", "android.permission.INTENT_FILTER_VERIFICATION_AGENT", "android.permission.INTERACT_ACROSS_USERS", "android.permission.INTERACT_ACROSS_USERS_FULL", "android.permission.INTERNAL_SYSTEM_WINDOW", "android.permission.INTERNET", "android.permission.INVOKE_CARRIER_SETUP", "android.permission.KILL_BACKGROUND_PROCESSES", "android.permission.KILL_UID", "android.permission.LAUNCH_TRUST_AGENT_SETTINGS", "android.permission.LOCAL_MAC_ADDRESS", "android.permission.LOCATION_HARDWARE", "android.permission.LOOP_RADIO", "android.permission.MANAGE_ACCOUNTS", "android.permission.MANAGE_ACTIVITY_STACKS", "android.permission.MANAGE_APP_OPS_RESTRICTIONS", "android.permission.MANAGE_APP_TOKENS", "android.permission.MANAGE_CA_CERTIFICATES", "android.permission.MANAGE_DEVICE_ADMINS", "android.permission.MANAGE_DOCUMENTS", "android.permission.MANAGE_FINGERPRINT", "android.permission.MANAGE_MEDIA_PROJECTION", "android.permission.MANAGE_NETWORK_POLICY", "android.permission.MANAGE_NOTIFICATIONS", "android.permission.MANAGE_PROFILE_AND_DEVICE_OWNERS", "android.permission.MANAGE_SOUND_TRIGGER", "android.permission.MANAGE_USB", "android.permission.MANAGE_USERS", "android.permission.MANAGE_VOICE_KEYPHRASES", "android.permission.MASTER_CLEAR", "android.permission.MEDIA_CONTENT_CONTROL", "android.permission.MODIFY_APPWIDGET_BIND_PERMISSIONS", "android.permission.MODIFY_AUDIO_ROUTING", "android.permission.MODIFY_AUDIO_SETTINGS", "android.permission.MODIFY_CELL_BROADCASTS", "android.permission.MODIFY_DAY_NIGHT_MODE", "android.permission.MODIFY_NETWORK_ACCOUNTING", "android.permission.MODIFY_PARENTAL_CONTROLS", "android.permission.MODIFY_PHONE_STATE", "android.permission.MOUNT_FORMAT_FILESYSTEMS", "android.permission.MOUNT_UNMOUNT_FILESYSTEMS", "android.permission.MOVE_PACKAGE", "android.permission.NET_ADMIN", "android.permission.NET_TUNNELING", "android.permission.NFC", "android.permission.NFC_HANDOVER_STATUS", "android.permission.NOTIFY_PENDING_SYSTEM_UPDATE", "android.permission.OBSERVE_GRANT_REVOKE_PERMISSIONS", "android.permission.OEM_UNLOCK_STATE", "android.permission.OVERRIDE_WIFI_CONFIG", "android.permission.PACKAGE_USAGE_STATS", "android.permission.PACKAGE_VERIFICATION_AGENT", "android.permission.PACKET_KEEPALIVE_OFFLOAD", "android.permission.PEERS_MAC_ADDRESS", "android.permission.PERFORM_CDMA_PROVISIONING", "android.permission.PERFORM_SIM_ACTIVATION", "android.permission.PERSISTENT_ACTIVITY", "android.permission.PROCESS_CALLLOG_INFO", "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION", "android.permission.PROVIDE_TRUST_AGENT", "android.permission.QUERY_DO_NOT_ASK_CREDENTIALS_ON_BOOT", "android.permission.READ_BLOCKED_NUMBERS", "android.permission.READ_DREAM_STATE", "android.permission.READ_FRAME_BUFFER", "android.permission.READ_INPUT_STATE", "android.permission.READ_INSTALL_SESSIONS", "android.permission.READ_LOGS", "android.permission.READ_NETWORK_USAGE_HISTORY", "android.permission.READ_OEM_UNLOCK_STATE", "android.permission.READ_PRECISE_PHONE_STATE", "android.permission.READ_PRIVILEGED_PHONE_STATE", "android.permission.READ_PROFILE", "android.permission.READ_SEARCH_INDEXABLES", "android.permission.READ_SOCIAL_STREAM", "android.permission.READ_SYNC_SETTINGS", "android.permission.READ_SYNC_STATS", "android.permission.READ_USER_DICTIONARY", "android.permission.READ_WIFI_CREDENTIAL", "android.permission.REAL_GET_TASKS", "android.permission.REBOOT", "android.permission.RECEIVE_BLUETOOTH_MAP", "android.permission.RECEIVE_BOOT_COMPLETED", "android.permission.RECEIVE_DATA_ACTIVITY_CHANGE", "android.permission.RECEIVE_EMERGENCY_BROADCAST", "android.permission.RECEIVE_MEDIA_RESOURCE_USAGE", "android.permission.RECEIVE_STK_COMMANDS", "android.permission.RECEIVE_WIFI_CREDENTIAL_CHANGE", "android.permission.RECOVERY", "android.permission.REGISTER_CALL_PROVIDER", "android.permission.REGISTER_CONNECTION_MANAGER", "android.permission.REGISTER_SIM_SUBSCRIPTION", "android.permission.REGISTER_WINDOW_MANAGER_LISTENERS", "android.permission.REMOTE_AUDIO_PLAYBACK", "android.permission.REMOVE_DRM_CERTIFICATES", "android.permission.REMOVE_TASKS", "android.permission.REORDER_TASKS", "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS", "android.permission.REQUEST_INSTALL_PACKAGES", "android.permission.RESET_FINGERPRINT_LOCKOUT", "android.permission.RESET_SHORTCUT_MANAGER_THROTTLING", "android.permission.RESTART_PACKAGES", "android.permission.RETRIEVE_WINDOW_CONTENT", "android.permission.RETRIEVE_WINDOW_TOKEN", "android.permission.REVOKE_RUNTIME_PERMISSIONS", "android.permission.SCORE_NETWORKS", "android.permission.SEND_CALL_LOG_CHANGE", "android.permission.SEND_DOWNLOAD_COMPLETED_INTENTS", "android.permission.SEND_RESPOND_VIA_MESSAGE", "android.permission.SEND_SMS_NO_CONFIRMATION", "android.permission.SERIAL_PORT", "android.permission.SET_ACTIVITY_WATCHER", "android.permission.SET_ALWAYS_FINISH", "android.permission.SET_ANIMATION_SCALE", "android.permission.SET_DEBUG_APP", "android.permission.SET_INPUT_CALIBRATION", "android.permission.SET_KEYBOARD_LAYOUT", "android.permission.SET_ORIENTATION", "android.permission.SET_POINTER_SPEED", "android.permission.SET_PREFERRED_APPLICATIONS", "android.permission.SET_PROCESS_LIMIT", "android.permission.SET_SCREEN_COMPATIBILITY", "android.permission.SET_TIME", "android.permission.SET_TIME_ZONE", "android.permission.SET_WALLPAPER", "android.permission.SET_WALLPAPER_COMPONENT", "android.permission.SET_WALLPAPER_HINTS", "android.permission.SHUTDOWN", "android.permission.SIGNAL_PERSISTENT_PROCESSES", "android.permission.START_ANY_ACTIVITY", "android.permission.START_PRINT_SERVICE_CONFIG_ACTIVITY", "android.permission.START_TASKS_FROM_RECENTS", "android.permission.STATUS_BAR", "android.permission.STATUS_BAR_SERVICE", "android.permission.STOP_APP_SWITCHES", "android.permission.STORAGE_INTERNAL", "android.permission.SUBSCRIBED_FEEDS_READ", "android.permission.SUBSCRIBED_FEEDS_WRITE", "android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME", "android.permission.SYSTEM_ALERT_WINDOW", "android.permission.TABLET_MODE", "android.permission.TEMPORARY_ENABLE_ACCESSIBILITY", "android.permission.TETHER_PRIVILEGED", "android.permission.TRANSMIT_IR", "android.permission.TRUST_LISTENER", "android.permission.TV_INPUT_HARDWARE", "android.permission.TV_VIRTUAL_REMOTE_CONTROLLER", "android.permission.UPDATE_APP_OPS_STATS", "android.permission.UPDATE_CONFIG", "android.permission.UPDATE_DEVICE_STATS", "android.permission.UPDATE_LOCK", "android.permission.UPDATE_LOCK_TASK_PACKAGES", "android.permission.USER_ACTIVITY", "android.permission.USE_CREDENTIALS", "android.permission.VIBRATE", "android.permission.WAKE_LOCK", "android.permission.WRITE_APN_SETTINGS", "android.permission.WRITE_BLOCKED_NUMBERS", "android.permission.WRITE_DREAM_STATE", "android.permission.WRITE_GSERVICES", "android.permission.WRITE_MEDIA_STORAGE", "android.permission.WRITE_PROFILE", "android.permission.WRITE_SECURE_SETTINGS", "android.permission.WRITE_SETTINGS", "android.permission.WRITE_SMS", "android.permission.WRITE_SOCIAL_STREAM", "android.permission.WRITE_SYNC_SETTINGS", "android.permission.WRITE_USER_DICTIONARY"
+        ];
 
-        // --- HÀM GỌI API GOOGLE TRANSLATE MIỄN PHÍ ---
+        const allSplitConfigs = [
+            "split_config.arm64_v8a", "config.arm64_v8a", "split_config.armeabi_v7a", "config.armeabi_v7a", "split_config.armeabi", "config.armeabi", "split_config.mips", "config.mips", "split_config.mips64", "config.mips64", "split_config.x86", "config.x86", "split_config.x86_64", "config.x86_64", "split_config.x86_64_v2", "config.x86_64_v2", "split_config.x86_64_v3", "config.x86_64_v3", "split_config.x86_64_v4", "config.x86_64_v4", "split_config.ldpi", "config.ldpi", "split_config.mdpi", "config.mdpi", "split_config.tvdpi", "config.tvdpi", "split_config.hdpi", "config.hdpi", "split_config.xhdpi", "config.xhdpi", "split_config.xxhdpi", "config.xxhdpi", "split_config.xxxhdpi", "config.xxxhdpi",
+            // Thêm các config ngôn ngữ theo format từ tệp
+            ...languageCodes.flatMap(lang => [`split_config.${lang}`, `config.${lang}`])
+        ];
+
+        // --- HÀM DỊCH GOOGLE ---
         async function translateText(text, sourceLang, targetLang) {
             if (!text || !targetLang) return text;
-            
-            // Xử lý mã ngôn ngữ cho Google (GG thường dùng mã gốc 2 chữ cái)
             let ggLang = targetLang.split('-')[0]; 
-            if (targetLang.startsWith("zh") || targetLang.startsWith("pt")) ggLang = targetLang; // Ngoại lệ cho tiếng Trung và Bồ Đào Nha
-
+            if (targetLang.startsWith("zh") || targetLang.startsWith("pt")) ggLang = targetLang;
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${ggLang}&dt=t&q=${encodeURIComponent(text)}`;
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-                return data[0][0][0]; // Lấy chuỗi văn bản đã được dịch
+                return data[0][0][0];
             } catch (error) {
                 console.error("Lỗi dịch thuật:", error);
-                return text; // Trả về tên gốc nếu API lỗi
+                return text;
             }
         }
 
-        // --- HÀM THÊM/XÓA CÁC TRƯỜNG NHẬP LIỆU ĐỘNG ---
+        // --- HÀM THÊM/XÓA TRƯỜNG NHẬP LIỆU ĐỘNG ---
 
-        // 1. Quản lý Locales (Có kết hợp Datalist và Auto-Translate)
+        // 1. Quản lý Locales
         function addLocaleRow(langCode = '', appName = '') {
             const container = document.getElementById('localesContainer');
             const row = document.createElement('div');
             row.className = 'dynamic-row';
-            
-            // list="localeList" giúp gắn danh sách gợi ý vào ô input
             row.innerHTML = `
                 <input type="text" class="loc-code" placeholder="Mã (vd: vi, en)" value="${langCode}" list="localeList">
                 <input type="text" class="loc-name" placeholder="Tên App bản địa hóa" value="${appName}">
@@ -236,25 +240,45 @@ config.arm64_v8a</textarea>
             `;
             container.appendChild(row);
 
-            // Gắn sự kiện "change" (khi người dùng chọn mã ngôn ngữ xong)
             const codeInput = row.querySelector('.loc-code');
             const nameInput = row.querySelector('.loc-name');
-
             codeInput.addEventListener('change', async function() {
                 const targetCode = this.value.trim();
                 const sourceText = document.getElementById('appName').value.trim();
                 const sourceLang = document.getElementById('sourceLang').value;
-
-                // Nếu người dùng chọn mã ngôn ngữ và tên app hiện tại đang trống (hoặc giống tên gốc)
                 if (targetCode && sourceText && (nameInput.value === '' || nameInput.value === sourceText)) {
-                    nameInput.value = "Đang dịch..."; // Báo hiệu trạng thái
+                    nameInput.value = "Đang dịch...";
                     const translatedText = await translateText(sourceText, sourceLang, targetCode);
-                    nameInput.value = translatedText; // Điền kết quả
+                    nameInput.value = translatedText;
                 }
             });
         }
 
-        // 2. Quản lý Expansions
+        // 2. Quản lý Permissions (Mới)
+        function addPermissionRow(permValue = '') {
+            const container = document.getElementById('permissionsContainer');
+            const row = document.createElement('div');
+            row.className = 'dynamic-row';
+            row.innerHTML = `
+                <input type="text" class="perm-val" placeholder="vd: android.permission.INTERNET" value="${permValue}" list="permissionsList">
+                <button type="button" class="btn-action btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // 3. Quản lý Split Configs (Mới)
+        function addSplitConfigRow(configValue = '') {
+            const container = document.getElementById('splitConfigsContainer');
+            const row = document.createElement('div');
+            row.className = 'dynamic-row';
+            row.innerHTML = `
+                <input type="text" class="config-val" placeholder="vd: config.xxhdpi" value="${configValue}" list="splitConfigsList">
+                <button type="button" class="btn-action btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // 4. Quản lý Expansions
         function addExpansionRow(filePath = '') {
             const container = document.getElementById('expansionsContainer');
             const row = document.createElement('div');
@@ -266,7 +290,7 @@ config.arm64_v8a</textarea>
             container.appendChild(row);
         }
 
-        // 3. Quản lý Split APKs
+        // 5. Quản lý Split APKs
         function addSplitApkRow(fileName = '', fileId = '') {
             const container = document.getElementById('splitApksContainer');
             const row = document.createElement('div');
@@ -280,32 +304,44 @@ config.arm64_v8a</textarea>
         }
 
         // --- KHỞI TẠO DỮ LIỆU KHI TẢI TRANG ---
-        window.onload = function() {
-            // Đổ 70+ mã ngôn ngữ vào thẻ datalist để gợi ý
-            const dataList = document.getElementById('localeList');
-            languageCodes.forEach(code => {
+        function populateDatalist(elementId, dataArray) {
+            const dataList = document.getElementById(elementId);
+            dataArray.forEach(item => {
                 const option = document.createElement('option');
-                option.value = code;
+                option.value = item;
                 dataList.appendChild(option);
             });
+        }
 
-            // Mặc định 3 trường ngôn ngữ
+        window.onload = function() {
+            // Đổ dữ liệu vào các Datalist ẩn để làm gợi ý
+            populateDatalist('localeList', languageCodes);
+            populateDatalist('permissionsList', allPermissions);
+            populateDatalist('splitConfigsList', allSplitConfigs);
+
+            // Các trường khởi tạo mặc định
             addLocaleRow('en', 'My Application');
             addLocaleRow('vi', 'Ứng Dụng Của Tôi');
-            addLocaleRow('es', 'Mi Aplicación');
 
-            // Mặc định 2 trường Expansions (Main và Patch)
+            // Khởi tạo mặc định cho Permissions
+            addPermissionRow('android.permission.INTERNET');
+            addPermissionRow('android.permission.ACCESS_NETWORK_STATE');
+
+            // Khởi tạo mặc định cho Split Configs
+            addSplitConfigRow('config.xxhdpi');
+            addSplitConfigRow('config.arm64_v8a');
+            addSplitConfigRow('config.en');
+
             const pkg = document.getElementById('packageName').value;
             const expVer = document.getElementById('expansionVersion').value;
             addExpansionRow(`Android/obb/${pkg}/main.${expVer}.${pkg}.obb`);
             addExpansionRow(`Android/obb/${pkg}/patch.${expVer}.${pkg}.obb`);
 
-            // Mặc định Split APKs
             addSplitApkRow('base.apk', 'base');
             addSplitApkRow('config.xxhdpi.apk', 'config.xxhdpi');
         };
 
-        // --- HÀM TẠO VÀ XUẤT JSON (GIỮ NGUYÊN THỨ TỰ) ---
+        // --- HÀM TẠO VÀ XUẤT JSON ---
         function generateAndDownloadJSON() {
             const xapkVersion = document.getElementById('xapkVersion').value;
             const packageName = document.getElementById('packageName').value;
@@ -318,9 +354,6 @@ config.arm64_v8a</textarea>
             const iconName = document.getElementById('icon').value;
             const expVersion = document.getElementById('expansionVersion').value;
 
-            const permissionsArray = document.getElementById('permissions').value.split('\n').map(p => p.trim()).filter(p => p !== "");
-            const splitConfigsArray = document.getElementById('splitConfigs').value.split('\n').map(s => s.trim()).filter(s => s !== "");
-
             // 1. Trích xuất Locales
             const localesObj = {};
             document.querySelectorAll('#localesContainer .dynamic-row').forEach(row => {
@@ -329,7 +362,21 @@ config.arm64_v8a</textarea>
                 if (code) localesObj[code] = name;
             });
 
-            // 2. Trích xuất Expansions
+            // 2. Trích xuất Permissions (Mới)
+            const permissionsArray = [];
+            document.querySelectorAll('#permissionsContainer .dynamic-row').forEach(row => {
+                const val = row.querySelector('.perm-val').value.trim();
+                if (val) permissionsArray.push(val);
+            });
+
+            // 3. Trích xuất Split Configs (Mới)
+            const splitConfigsArray = [];
+            document.querySelectorAll('#splitConfigsContainer .dynamic-row').forEach(row => {
+                const val = row.querySelector('.config-val').value.trim();
+                if (val) splitConfigsArray.push(val);
+            });
+
+            // 4. Trích xuất Expansions
             const expansionsArray = [];
             document.querySelectorAll('#expansionsContainer .dynamic-row').forEach(row => {
                 const file = row.querySelector('.exp-file').value.trim();
@@ -342,7 +389,7 @@ config.arm64_v8a</textarea>
                 }
             });
 
-            // 3. Trích xuất Split APKs
+            // 5. Trích xuất Split APKs
             const splitApksArray = [];
             document.querySelectorAll('#splitApksContainer .dynamic-row').forEach(row => {
                 const file = row.querySelector('.apk-file').value.trim();
