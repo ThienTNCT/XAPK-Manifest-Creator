@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Công Cụ Tạo XAPK Manifest</title>
+    <title>XAPK Manifest Creator</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,11 +63,11 @@
 <body>
 
     <div class="container">
-        <h2>Tạo tệp manifest.json chuẩn XAPK</h2>
+        <h2>XAPK Manifest Creator</h2>
         
         <div class="grid-2">
             <div class="form-group">
-                <label>Package Name:</label>
+                <label>Package Name (Tên gói ứng dụng):</label>
                 <input type="text" id="packageName" value="com.example.app">
             </div>
             <div class="form-group">
@@ -76,144 +76,154 @@
             </div>
             
             <div class="form-group">
-                <label>Version Code:</label>
+                <label>Version Code (Mã phiên bản):</label>
                 <input type="text" id="versionCode" value="1">
             </div>
             <div class="form-group">
-                <label>Version Name:</label>
+                <label>Version Name (Tên phiên bản):</label>
                 <input type="text" id="versionName" value="1.0">
             </div>
 
             <div class="form-group">
-                <label>Min SDK Version:</label>
+                <label>Min SDK Version (SDK tối thiểu):</label>
                 <input type="text" id="minSdk" value="21">
             </div>
             <div class="form-group">
-                <label>Target SDK Version:</label>
+                <label>Target SDK Version (SDK mục tiêu):</label>
                 <input type="text" id="targetSdk" value="33">
             </div>
 
             <div class="form-group">
-                <label>Total Size (Bytes):</label>
+                <label>Total Size (Tổng kích thước dạng Bytes):</label>
                 <input type="text" id="totalSize" value="10485760">
             </div>
             <div class="form-group">
-                <label>Expansion Version (Cho file OBB):</label>
+                <label>Expansion Version (Phiên bản OBB):</label>
                 <input type="text" id="expansionVersion" value="1">
             </div>
             
             <div class="form-group">
-                <label>Tên file Base APK:</label>
+                <label>Base APK File Name (Tên tệp APK gốc):</label>
                 <input type="text" id="baseApk" value="base.apk">
             </div>
             <div class="form-group">
-                <label>Icon:</label>
+                <label>Icon File Name (Tên tệp biểu tượng):</label>
                 <input type="text" id="icon" value="icon.png">
             </div>
 
             <div class="form-group full-width">
-                <label>Permissions (Mỗi quyền 1 dòng):</label>
+                <label>Permissions (Quyền hạn - Mỗi quyền 1 dòng):</label>
                 <textarea id="permissions">android.permission.INTERNET
 android.permission.ACCESS_NETWORK_STATE</textarea>
             </div>
 
             <div class="form-group full-width">
-                <label>Split Configs (ID của các APK chia nhỏ, mỗi ID 1 dòng):</label>
+                <label>Split Configs (ID tệp chia nhỏ - Mỗi ID 1 dòng):</label>
                 <textarea id="splitConfigs">config.xxhdpi
 config.en
 config.arm64_v8a</textarea>
             </div>
         </div>
 
-        <button onclick="taoVaTaiJSON()">Tạo và Tải manifest.json</button>
+        <button onclick="generateAndDownloadJSON()">Generate and Download JSON (Tạo và Tải xuống)</button>
 
         <div class="result-box">
-            <label>Nội dung file sẽ được tạo:</label>
-            <pre id="ketQuaJSON">// Bấm nút để tạo</pre>
+            <label>Preview (Xem trước nội dung tệp):</label>
+            <pre id="jsonPreview">// Click the button to generate (Bấm nút để tạo)</pre>
         </div>
     </div>
 
     <script>
-        // Danh sách ngôn ngữ cố định theo file mẫu của bạn
-        const dsNgonNgu = ["af","am","ar","az-AZ","bg","bn-BD","br","ca","cs","da","de","el","en","en-AU","en-GB","en-IN","es","es-US","et-EE","eu-ES","fa","fi","fr","fr-CA","gl-ES","gu-IN","hi","hr","hu","hy-AM","in","is-IS","it","iw","ja","ka-GE","kk-KZ","km-KH","kn-IN","ko","ky-KG","lo-LA","lt","lv","mk-MK","ml-IN","mn-MN","mr-IN","ms-MY","my-MM","nb","ne-NP","nl","pa-IN","pl","pt","pt-BR","pt-PT","ro","ru","si-LK","sk","sl","sq-AL","sr","sv","sw","ta-IN","te-IN","th","tl","tr","uk","ur-PK","uz-UZ","vi","zh","zh-CN","zh-HK","zh-TW","zu"];
+        // Danh sách các mã ngôn ngữ theo chuẩn bạn cung cấp
+        const languageCodes = ["af","am","ar","az-AZ","bg","bn-BD","br","ca","cs","da","de","el","en","en-AU","en-GB","en-IN","es","es-US","et-EE","eu-ES","fa","fi","fr","fr-CA","gl-ES","gu-IN","hi","hr","hu","hy-AM","in","is-IS","it","iw","ja","ka-GE","kk-KZ","km-KH","kn-IN","ko","ky-KG","lo-LA","lt","lv","mk-MK","ml-IN","mn-MN","mr-IN","ms-MY","my-MM","nb","ne-NP","nl","pa-IN","pl","pt","pt-BR","pt-PT","ro","ru","si-LK","sk","sl","sq-AL","sr","sv","sw","ta-IN","te-IN","th","tl","tr","uk","ur-PK","uz-UZ","vi","zh","zh-CN","zh-HK","zh-TW","zu"];
 
-        function taoVaTaiJSON() {
-            // Lấy dữ liệu cơ bản
-            const pkgName = document.getElementById('packageName').value;
+        function generateAndDownloadJSON() {
+            // Lấy dữ liệu từ các trường nhập liệu
+            const packageName = document.getElementById('packageName').value;
             const appName = document.getElementById('appName').value;
+            const versionCode = document.getElementById('versionCode').value;
+            const versionName = document.getElementById('versionName').value;
+            const minSdk = document.getElementById('minSdk').value;
+            const targetSdk = document.getElementById('targetSdk').value;
+            const totalSize = document.getElementById('totalSize').value;
+            const iconName = document.getElementById('icon').value;
             const expVersion = document.getElementById('expansionVersion').value;
             const baseApk = document.getElementById('baseApk').value;
 
-            // Xử lý đối tượng locales_name (Gán tên App vào tất cả ngôn ngữ)
+            // Xử lý mục locales_name
             const localesObj = {};
-            dsNgonNgu.forEach(lang => {
+            languageCodes.forEach(lang => {
                 localesObj[lang] = appName;
             });
 
-            // Xử lý mảng từ Textarea (Cắt theo dòng, xóa khoảng trắng thừa và loại bỏ dòng trống)
-            const permText = document.getElementById('permissions').value;
-            const permsArray = permText.split('\n').map(p => p.trim()).filter(p => p !== "");
+            // Xử lý mục permissions
+            const permissionsText = document.getElementById('permissions').value;
+            const permissionsArray = permissionsText.split('\n').map(p => p.trim()).filter(p => p !== "");
 
-            const splitText = document.getElementById('splitConfigs').value;
-            const splitsArray = splitText.split('\n').map(s => s.trim()).filter(s => s !== "");
+            // Xử lý mục split_configs
+            const splitConfigsText = document.getElementById('splitConfigs').value;
+            const splitConfigsArray = splitConfigsText.split('\n').map(s => s.trim()).filter(s => s !== "");
 
-            // Xử lý mảng split_apks (Tự động thêm Base APK và các Config APK)
+            // Xử lý mục expansions (Tạo đường dẫn OBB tự động)
+            const expansionsArray = [
+                {
+                    "file": `Android/obb/${packageName}/main.${expVersion}.${packageName}.obb`,
+                    "install_location": "EXTERNAL_STORAGE",
+                    "install_path": `Android/obb/${packageName}/main.${expVersion}.${packageName}.obb`
+                },
+                {
+                    "file": `Android/obb/${packageName}/patch.${expVersion}.${packageName}.obb`,
+                    "install_location": "EXTERNAL_STORAGE",
+                    "install_path": `Android/obb/${packageName}/patch.${expVersion}.${packageName}.obb`
+                }
+            ];
+
+            // Xử lý mục split_apks (Bao gồm Base APK và các Config APK)
             const splitApksArray = [
                 { "file": baseApk, "id": "base" }
             ];
-            splitsArray.forEach(idConfig => {
+            splitConfigsArray.forEach(idConfig => {
                 splitApksArray.push({
-                    "file": idConfig + ".apk", // Giả định tên file trùng ID + .apk
+                    "file": idConfig + ".apk", 
                     "id": idConfig
                 });
             });
 
-            // Cấu trúc chính xác theo tệp của bạn
+            // ĐÓNG GÓI JSON: Thứ tự các trường được giữ đúng 100% theo mẫu của bạn từ trên xuống dưới
             const manifestData = {
                 "xapk_version": "2",
-                "package_name": pkgName,
+                "package_name": packageName,
                 "name": appName,
                 "locales_name": localesObj,
-                "version_code": document.getElementById('versionCode').value,
-                "version_name": document.getElementById('versionName').value,
-                "min_sdk_version": document.getElementById('minSdk').value,
-                "target_sdk_version": document.getElementById('targetSdk').value,
-                "permissions": permsArray,
-                "split_configs": splitsArray,
-                "total_size": document.getElementById('totalSize').value,
-                "icon": document.getElementById('icon').value,
+                "version_code": versionCode,
+                "version_name": versionName,
+                "min_sdk_version": minSdk,
+                "target_sdk_version": targetSdk,
+                "permissions": permissionsArray,
+                "split_configs": splitConfigsArray,
+                "total_size": totalSize,
+                "icon": iconName,
                 "expansion_version": expVersion,
-                "expansions": [
-                    {
-                        "file": `Android/obb/${pkgName}/main.${expVersion}.${pkgName}.obb`,
-                        "install_location": "EXTERNAL_STORAGE",
-                        "install_path": `Android/obb/${pkgName}/main.${expVersion}.${pkgName}.obb`
-                    },
-                    {
-                        "file": `Android/obb/${pkgName}/patch.${expVersion}.${pkgName}.obb`,
-                        "install_location": "EXTERNAL_STORAGE",
-                        "install_path": `Android/obb/${pkgName}/patch.${expVersion}.${pkgName}.obb`
-                    }
-                ],
+                "expansions": expansionsArray,
                 "split_apks": splitApksArray
             };
 
-            // Tạo chuỗi JSON
-            const chuoiJSON = JSON.stringify(manifestData, null, 4);
+            // Chuyển đổi đối tượng sang chuỗi JSON (thụt lề 4 khoảng trắng)
+            const jsonString = JSON.stringify(manifestData, null, 4);
 
-            // Hiển thị lên màn hình
-            document.getElementById('ketQuaJSON').textContent = chuoiJSON;
+            // Cập nhật giao diện xem trước
+            document.getElementById('jsonPreview').textContent = jsonString;
 
-            // Kích hoạt tính năng tự động tải về
-            const blob = new Blob([chuoiJSON], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "manifest.json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            // Xử lý tải tệp tin manifest.json xuống
+            const fileBlob = new Blob([jsonString], { type: "application/json" });
+            const fileUrl = URL.createObjectURL(fileBlob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = fileUrl;
+            downloadLink.download = "manifest.json";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(fileUrl);
         }
     </script>
 </body>
