@@ -38,7 +38,6 @@
             font-family: inherit;
         }
         
-        /* CSS cho các trường nhập liệu động */
         .dynamic-container {
             border: 1px solid #e0e0e0;
             padding: 15px;
@@ -53,7 +52,6 @@
         }
         .dynamic-row input { flex: 1; }
         
-        /* Các nút bấm */
         .btn-action {
             padding: 8px 12px;
             border: none;
@@ -111,13 +109,10 @@
             <div class="form-group">
                 <label>App Name (Tên ứng dụng gốc):</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="appName" value="My Application" style="flex: 2;">
-                    <select id="sourceLang" style="flex: 1;" title="Ngôn ngữ gốc để dịch tự động">
+                    <input type="text" id="appName" value="My Application" style="flex: 2;" onchange="translateAllLocales()">
+                    <select id="sourceLang" style="flex: 1;" title="Ngôn ngữ gốc để dịch tự động" onchange="translateAllLocales()">
                         <option value="auto">Auto-Detect</option>
-                        <option value="en">English (en)</option>
-                        <option value="vi">Tiếng Việt (vi)</option>
-                        <option value="zh">Chinese (zh)</option>
-                    </select>
+                        </select>
                 </div>
             </div>
             
@@ -206,7 +201,6 @@
 
         const allSplitConfigs = [
             "split_config.arm64_v8a", "config.arm64_v8a", "split_config.armeabi_v7a", "config.armeabi_v7a", "split_config.armeabi", "config.armeabi", "split_config.mips", "config.mips", "split_config.mips64", "config.mips64", "split_config.x86", "config.x86", "split_config.x86_64", "config.x86_64", "split_config.x86_64_v2", "config.x86_64_v2", "split_config.x86_64_v3", "config.x86_64_v3", "split_config.x86_64_v4", "config.x86_64_v4", "split_config.ldpi", "config.ldpi", "split_config.mdpi", "config.mdpi", "split_config.tvdpi", "config.tvdpi", "split_config.hdpi", "config.hdpi", "split_config.xhdpi", "config.xhdpi", "split_config.xxhdpi", "config.xxhdpi", "split_config.xxxhdpi", "config.xxxhdpi",
-            // Thêm các config ngôn ngữ theo format từ tệp
             ...languageCodes.flatMap(lang => [`split_config.${lang}`, `config.${lang}`])
         ];
 
@@ -226,6 +220,26 @@
             }
         }
 
+        // --- HÀM TỰ ĐỘNG DỊCH TOÀN BỘ CÁC TRƯỜNG HIỆN CÓ ---
+        async function translateAllLocales() {
+            const sourceText = document.getElementById('appName').value.trim();
+            const sourceLang = document.getElementById('sourceLang').value;
+            if (!sourceText) return;
+
+            const rows = document.querySelectorAll('#localesContainer .dynamic-row');
+            for (let row of rows) {
+                const codeInput = row.querySelector('.loc-code');
+                const nameInput = row.querySelector('.loc-name');
+                const targetCode = codeInput.value.trim();
+                
+                if (targetCode) {
+                    nameInput.value = "Đang dịch...";
+                    const translatedText = await translateText(sourceText, sourceLang, targetCode);
+                    nameInput.value = translatedText;
+                }
+            }
+        }
+
         // --- HÀM THÊM/XÓA TRƯỜNG NHẬP LIỆU ĐỘNG ---
 
         // 1. Quản lý Locales
@@ -240,13 +254,14 @@
             `;
             container.appendChild(row);
 
+            // Giữ lại tính năng tự dịch khi người dùng chọn/đổi mã ngôn ngữ của 1 dòng cụ thể
             const codeInput = row.querySelector('.loc-code');
             const nameInput = row.querySelector('.loc-name');
             codeInput.addEventListener('change', async function() {
                 const targetCode = this.value.trim();
                 const sourceText = document.getElementById('appName').value.trim();
                 const sourceLang = document.getElementById('sourceLang').value;
-                if (targetCode && sourceText && (nameInput.value === '' || nameInput.value === sourceText)) {
+                if (targetCode && sourceText) {
                     nameInput.value = "Đang dịch...";
                     const translatedText = await translateText(sourceText, sourceLang, targetCode);
                     nameInput.value = translatedText;
@@ -254,7 +269,7 @@
             });
         }
 
-        // 2. Quản lý Permissions (Mới)
+        // 2. Quản lý Permissions
         function addPermissionRow(permValue = '') {
             const container = document.getElementById('permissionsContainer');
             const row = document.createElement('div');
@@ -266,7 +281,7 @@
             container.appendChild(row);
         }
 
-        // 3. Quản lý Split Configs (Mới)
+        // 3. Quản lý Split Configs
         function addSplitConfigRow(configValue = '') {
             const container = document.getElementById('splitConfigsContainer');
             const row = document.createElement('div');
@@ -314,31 +329,45 @@
         }
 
         window.onload = function() {
-            // Đổ dữ liệu vào các Datalist ẩn để làm gợi ý
+            // Đổ dữ liệu vào các Menu ẩn và Menu thả xuống
             populateDatalist('localeList', languageCodes);
             populateDatalist('permissionsList', allPermissions);
             populateDatalist('splitConfigsList', allSplitConfigs);
 
-            // Các trường khởi tạo mặc định
-            addLocaleRow('en', 'My Application');
-            addLocaleRow('vi', 'Ứng Dụng Của Tôi');
+            const sourceLangSelect = document.getElementById('sourceLang');
+            languageCodes.forEach(code => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = code;
+                sourceLangSelect.appendChild(option);
+            });
 
-            // Khởi tạo mặc định cho Permissions
+            // Khởi tạo mặc định Locales (Để trống tên App để kích hoạt logic Update khi bạn gõ ở trên)
+            addLocaleRow('en', '');
+            addLocaleRow('vi', '');
+            // Gọi hàm dịch ngay lúc web vừa mở để lấp đầy 2 trường vừa tạo
+            translateAllLocales();
+
+            // Khởi tạo mặc định Permissions
             addPermissionRow('android.permission.INTERNET');
             addPermissionRow('android.permission.ACCESS_NETWORK_STATE');
 
-            // Khởi tạo mặc định cho Split Configs
+            // Khởi tạo mặc định Split Configs
             addSplitConfigRow('config.xxhdpi');
             addSplitConfigRow('config.arm64_v8a');
             addSplitConfigRow('config.en');
 
+            // Khởi tạo mặc định Expansions
             const pkg = document.getElementById('packageName').value;
             const expVer = document.getElementById('expansionVersion').value;
             addExpansionRow(`Android/obb/${pkg}/main.${expVer}.${pkg}.obb`);
             addExpansionRow(`Android/obb/${pkg}/patch.${expVer}.${pkg}.obb`);
 
+            // Khởi tạo mặc định Split APKs (Đủ 4 tệp như bạn yêu cầu)
             addSplitApkRow('base.apk', 'base');
             addSplitApkRow('config.xxhdpi.apk', 'config.xxhdpi');
+            addSplitApkRow('config.arm64_v8a.apk', 'config.arm64_v8a');
+            addSplitApkRow('config.en.apk', 'config.en');
         };
 
         // --- HÀM TẠO VÀ XUẤT JSON ---
@@ -354,7 +383,6 @@
             const iconName = document.getElementById('icon').value;
             const expVersion = document.getElementById('expansionVersion').value;
 
-            // 1. Trích xuất Locales
             const localesObj = {};
             document.querySelectorAll('#localesContainer .dynamic-row').forEach(row => {
                 const code = row.querySelector('.loc-code').value.trim();
@@ -362,21 +390,18 @@
                 if (code) localesObj[code] = name;
             });
 
-            // 2. Trích xuất Permissions (Mới)
             const permissionsArray = [];
             document.querySelectorAll('#permissionsContainer .dynamic-row').forEach(row => {
                 const val = row.querySelector('.perm-val').value.trim();
                 if (val) permissionsArray.push(val);
             });
 
-            // 3. Trích xuất Split Configs (Mới)
             const splitConfigsArray = [];
             document.querySelectorAll('#splitConfigsContainer .dynamic-row').forEach(row => {
                 const val = row.querySelector('.config-val').value.trim();
                 if (val) splitConfigsArray.push(val);
             });
 
-            // 4. Trích xuất Expansions
             const expansionsArray = [];
             document.querySelectorAll('#expansionsContainer .dynamic-row').forEach(row => {
                 const file = row.querySelector('.exp-file').value.trim();
@@ -389,7 +414,6 @@
                 }
             });
 
-            // 5. Trích xuất Split APKs
             const splitApksArray = [];
             document.querySelectorAll('#splitApksContainer .dynamic-row').forEach(row => {
                 const file = row.querySelector('.apk-file').value.trim();
@@ -399,7 +423,7 @@
                 }
             });
 
-            // ĐÓNG GÓI JSON (Thứ tự chặt chẽ)
+            // ĐÓNG GÓI JSON
             const manifestData = {
                 "xapk_version": xapkVersion,
                 "package_name": packageName,
