@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công Cụ Tạo XAPK Manifest</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h2 { text-align: center; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 25px;}
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #555;}
+        input, textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        .full-width { grid-column: span 2; }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        button:hover { background-color: #0056b3; }
+        .result-box { margin-top: 30px; }
+        pre {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Tạo tệp manifest.json chuẩn XAPK</h2>
+        
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Package Name:</label>
+                <input type="text" id="packageName" value="com.example.app">
+            </div>
+            <div class="form-group">
+                <label>App Name (Tên ứng dụng):</label>
+                <input type="text" id="appName" value="My Application">
+            </div>
+            
+            <div class="form-group">
+                <label>Version Code:</label>
+                <input type="text" id="versionCode" value="1">
+            </div>
+            <div class="form-group">
+                <label>Version Name:</label>
+                <input type="text" id="versionName" value="1.0">
+            </div>
+
+            <div class="form-group">
+                <label>Min SDK Version:</label>
+                <input type="text" id="minSdk" value="21">
+            </div>
+            <div class="form-group">
+                <label>Target SDK Version:</label>
+                <input type="text" id="targetSdk" value="33">
+            </div>
+
+            <div class="form-group">
+                <label>Total Size (Bytes):</label>
+                <input type="text" id="totalSize" value="10485760">
+            </div>
+            <div class="form-group">
+                <label>Expansion Version (Cho file OBB):</label>
+                <input type="text" id="expansionVersion" value="1">
+            </div>
+            
+            <div class="form-group">
+                <label>Tên file Base APK:</label>
+                <input type="text" id="baseApk" value="base.apk">
+            </div>
+            <div class="form-group">
+                <label>Icon:</label>
+                <input type="text" id="icon" value="icon.png">
+            </div>
+
+            <div class="form-group full-width">
+                <label>Permissions (Mỗi quyền 1 dòng):</label>
+                <textarea id="permissions">android.permission.INTERNET
+android.permission.ACCESS_NETWORK_STATE</textarea>
+            </div>
+
+            <div class="form-group full-width">
+                <label>Split Configs (ID của các APK chia nhỏ, mỗi ID 1 dòng):</label>
+                <textarea id="splitConfigs">config.xxhdpi
+config.en
+config.arm64_v8a</textarea>
+            </div>
+        </div>
+
+        <button onclick="taoVaTaiJSON()">Tạo và Tải manifest.json</button>
+
+        <div class="result-box">
+            <label>Nội dung file sẽ được tạo:</label>
+            <pre id="ketQuaJSON">// Bấm nút để tạo</pre>
+        </div>
+    </div>
+
+    <script>
+        // Danh sách ngôn ngữ cố định theo file mẫu của bạn
+        const dsNgonNgu = ["af","am","ar","az-AZ","bg","bn-BD","br","ca","cs","da","de","el","en","en-AU","en-GB","en-IN","es","es-US","et-EE","eu-ES","fa","fi","fr","fr-CA","gl-ES","gu-IN","hi","hr","hu","hy-AM","in","is-IS","it","iw","ja","ka-GE","kk-KZ","km-KH","kn-IN","ko","ky-KG","lo-LA","lt","lv","mk-MK","ml-IN","mn-MN","mr-IN","ms-MY","my-MM","nb","ne-NP","nl","pa-IN","pl","pt","pt-BR","pt-PT","ro","ru","si-LK","sk","sl","sq-AL","sr","sv","sw","ta-IN","te-IN","th","tl","tr","uk","ur-PK","uz-UZ","vi","zh","zh-CN","zh-HK","zh-TW","zu"];
+
+        function taoVaTaiJSON() {
+            // Lấy dữ liệu cơ bản
+            const pkgName = document.getElementById('packageName').value;
+            const appName = document.getElementById('appName').value;
+            const expVersion = document.getElementById('expansionVersion').value;
+            const baseApk = document.getElementById('baseApk').value;
+
+            // Xử lý đối tượng locales_name (Gán tên App vào tất cả ngôn ngữ)
+            const localesObj = {};
+            dsNgonNgu.forEach(lang => {
+                localesObj[lang] = appName;
+            });
+
+            // Xử lý mảng từ Textarea (Cắt theo dòng, xóa khoảng trắng thừa và loại bỏ dòng trống)
+            const permText = document.getElementById('permissions').value;
+            const permsArray = permText.split('\n').map(p => p.trim()).filter(p => p !== "");
+
+            const splitText = document.getElementById('splitConfigs').value;
+            const splitsArray = splitText.split('\n').map(s => s.trim()).filter(s => s !== "");
+
+            // Xử lý mảng split_apks (Tự động thêm Base APK và các Config APK)
+            const splitApksArray = [
+                { "file": baseApk, "id": "base" }
+            ];
+            splitsArray.forEach(idConfig => {
+                splitApksArray.push({
+                    "file": idConfig + ".apk", // Giả định tên file trùng ID + .apk
+                    "id": idConfig
+                });
+            });
+
+            // Cấu trúc chính xác theo tệp của bạn
+            const manifestData = {
+                "xapk_version": "2",
+                "package_name": pkgName,
+                "name": appName,
+                "locales_name": localesObj,
+                "version_code": document.getElementById('versionCode').value,
+                "version_name": document.getElementById('versionName').value,
+                "min_sdk_version": document.getElementById('minSdk').value,
+                "target_sdk_version": document.getElementById('targetSdk').value,
+                "permissions": permsArray,
+                "split_configs": splitsArray,
+                "total_size": document.getElementById('totalSize').value,
+                "icon": document.getElementById('icon').value,
+                "expansion_version": expVersion,
+                "expansions": [
+                    {
+                        "file": `Android/obb/${pkgName}/main.${expVersion}.${pkgName}.obb`,
+                        "install_location": "EXTERNAL_STORAGE",
+                        "install_path": `Android/obb/${pkgName}/main.${expVersion}.${pkgName}.obb`
+                    },
+                    {
+                        "file": `Android/obb/${pkgName}/patch.${expVersion}.${pkgName}.obb`,
+                        "install_location": "EXTERNAL_STORAGE",
+                        "install_path": `Android/obb/${pkgName}/patch.${expVersion}.${pkgName}.obb`
+                    }
+                ],
+                "split_apks": splitApksArray
+            };
+
+            // Tạo chuỗi JSON
+            const chuoiJSON = JSON.stringify(manifestData, null, 4);
+
+            // Hiển thị lên màn hình
+            document.getElementById('ketQuaJSON').textContent = chuoiJSON;
+
+            // Kích hoạt tính năng tự động tải về
+            const blob = new Blob([chuoiJSON], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "manifest.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
